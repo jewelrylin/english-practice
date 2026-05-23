@@ -1215,32 +1215,104 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
 
 // ── Login screen ─────────────────────────────────────────────────────────────
 function LoginScreen() {
-  const [loading, setLoading] = React.useState(false);
-  const login = async () => {
-    setLoading(true);
-    await sb.auth.signInWithOAuth({
-      provider: 'github',
-      options: { redirectTo: window.location.href }
-    });
+  const [tab,      setTab]      = React.useState('login'); // login | register
+  const [email,    setEmail]    = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [loading,  setLoading]  = React.useState(false);
+  const [error,    setError]    = React.useState('');
+  const [done,     setDone]     = React.useState(''); // success message
+
+  const inputStyle = {
+    width:'100%', padding:'12px 14px', borderRadius:12, fontSize:15,
+    border:'2px solid #e8eaf0', outline:'none', fontFamily:'Nunito, sans-serif',
+    background:'#fafbff', transition:'border-color 0.15s',
   };
+
+  const loginGitHub = async () => {
+    setLoading(true); setError('');
+    await sb.auth.signInWithOAuth({ provider:'github', options:{ redirectTo: window.location.href } });
+  };
+
+  const submitEmail = async (e) => {
+    e.preventDefault();
+    if (!email || !password) { setError('請填寫 Email 和密碼'); return; }
+    if (password.length < 6)  { setError('密碼至少 6 個字元'); return; }
+    setLoading(true); setError(''); setDone('');
+    if (tab === 'login') {
+      const { error: err } = await sb.auth.signInWithPassword({ email, password });
+      if (err) { setError(err.message === 'Invalid login credentials' ? 'Email 或密碼錯誤' : err.message); setLoading(false); }
+    } else {
+      const { error: err } = await sb.auth.signUp({ email, password });
+      if (err) { setError(err.message); setLoading(false); }
+      else { setDone('註冊成功！正在登入…'); }
+    }
+  };
+
   return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:24, padding:24 }}>
-      <div className="bobble"><Pip size={110} pose="wave"/></div>
-      <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:28, fontWeight:800, fontFamily:'Fredoka', color:'#2d3a2e' }}>Pip's English Practice</div>
-        <div style={{ fontSize:14, color:'#5a6a5e', marginTop:6 }}>登入後即可跨裝置同步學習進度</div>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div className="bobble" style={{ marginBottom:16 }}><Pip size={90} pose="wave"/></div>
+      <div style={{ textAlign:'center', marginBottom:24 }}>
+        <div style={{ fontSize:26, fontWeight:800, fontFamily:'Fredoka', color:'#2d3a2e' }}>Pip's English Practice</div>
+        <div style={{ fontSize:13, color:'#5a6a5e', marginTop:4 }}>登入後即可跨裝置同步學習進度</div>
       </div>
-      <button onClick={login} disabled={loading} className="btn-press" style={{
-        display:'flex', alignItems:'center', gap:12, padding:'14px 28px',
-        background: loading ? '#ccc' : '#24292e', color:'#fff',
-        border:'none', borderRadius:16, fontSize:16, fontWeight:700,
-        boxShadow: loading ? 'none' : '0 4px 0 #000', cursor: loading ? 'default' : 'pointer',
-      }}>
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-        </svg>
-        {loading ? '登入中…' : '用 GitHub 帳號登入'}
-      </button>
+
+      <div style={{ width:'100%', maxWidth:360, background:'#fff', borderRadius:24, padding:24, boxShadow:'0 8px 32px rgba(0,0,0,0.1)' }}>
+        {/* Tabs */}
+        <div style={{ display:'flex', background:'#f3f4f8', borderRadius:12, padding:4, marginBottom:20 }}>
+          {[['login','登入'],['register','註冊']].map(([t,label]) => (
+            <button key={t} onClick={() => { setTab(t); setError(''); setDone(''); }} style={{
+              flex:1, padding:'8px 0', borderRadius:10, border:'none', fontSize:14, fontWeight:800,
+              background: tab === t ? '#fff' : 'transparent',
+              color: tab === t ? '#2d3a2e' : '#9aa',
+              boxShadow: tab === t ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
+              cursor:'pointer', transition:'all 0.15s',
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {/* Email form */}
+        <form onSubmit={submitEmail} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <input type="email" placeholder="Email" value={email}
+            onChange={e => setEmail(e.target.value)} style={inputStyle}
+            onFocus={e => e.target.style.borderColor='#5b8def'}
+            onBlur={e => e.target.style.borderColor='#e8eaf0'} />
+          <input type="password" placeholder="密碼（至少 6 位）" value={password}
+            onChange={e => setPassword(e.target.value)} style={inputStyle}
+            onFocus={e => e.target.style.borderColor='#5b8def'}
+            onBlur={e => e.target.style.borderColor='#e8eaf0'} />
+
+          {error && <div style={{ fontSize:12, color:'#e94f5b', fontWeight:700, textAlign:'center' }}>{error}</div>}
+          {done  && <div style={{ fontSize:12, color:'#3aa56b', fontWeight:700, textAlign:'center' }}>{done}</div>}
+
+          <button type="submit" disabled={loading} className="btn-press" style={{
+            padding:'12px 0', borderRadius:12, border:'none', fontSize:15, fontWeight:800,
+            background: loading ? '#ccc' : '#5b8def', color:'#fff',
+            boxShadow: loading ? 'none' : '0 4px 0 #3a6cd4', cursor: loading ? 'default' : 'pointer',
+          }}>
+            {loading ? '請稍候…' : tab === 'login' ? '登入' : '建立帳號'}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, margin:'16px 0' }}>
+          <div style={{ flex:1, height:1, background:'#e8eaf0' }}/>
+          <span style={{ fontSize:12, color:'#aaa', fontWeight:700 }}>或</span>
+          <div style={{ flex:1, height:1, background:'#e8eaf0' }}/>
+        </div>
+
+        {/* GitHub */}
+        <button onClick={loginGitHub} disabled={loading} className="btn-press" style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+          padding:'12px 0', background:'#24292e', color:'#fff',
+          border:'none', borderRadius:12, fontSize:14, fontWeight:700,
+          boxShadow:'0 4px 0 #000', cursor: loading ? 'default' : 'pointer',
+        }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          用 GitHub 帳號登入
+        </button>
+      </div>
     </div>
   );
 }
