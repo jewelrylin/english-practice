@@ -259,94 +259,130 @@ function Pip({ size=80, pose='idle' }) {
 // ── Question bank ─────────────────────────────────────────────────────────────
 const QB = {
   easy: {
-    label:'初級 Easy', color:'#3aa56b', bg:'#e8f8ef', stars:1, emoji:'🌱',
-    desc:'基本單字・動物・顏色・CVC拼音',
+    label:'三年級 Easy', color:'#3aa56b', bg:'#e8f8ef', stars:1, emoji:'🌱',
+    desc:'翰林三年級・問候・顏色・動物・教室物品',
     questions:[
-      { type:'listen', text:'cat',  cn:'貓',  emoji:'🐱', choices:['cat','bat','hat','rat'],    correct:0 },
-      { type:'listen', text:'dog',  cn:'狗',  emoji:'🐶', choices:['fog','log','dog','hog'],    correct:2 },
-      { type:'listen', text:'red',  cn:'紅色', emoji:'🔴', choices:['bed','red','fed','led'],    correct:1 },
-      { type:'listen', text:'sun',  cn:'太陽', emoji:'☀️', choices:['bun','fun','run','sun'],    correct:3 },
-      { type:'listen', text:'big',  cn:'大的', emoji:'🐘', choices:['bid','bit','big','bin'],    correct:2 },
-      { type:'listen', text:'fish', cn:'魚',  emoji:'🐟', choices:['dish','wish','fish','kiss'], correct:2 },
+      { type:'listen', text:'red',    cn:'紅色',  emoji:'🔴', choices:['red','bed','fed','led'],       correct:0 },
+      { type:'listen', text:'blue',   cn:'藍色',  emoji:'🔵', choices:['blue','clue','glue','true'],   correct:0 },
+      { type:'listen', text:'green',  cn:'綠色',  emoji:'💚', choices:['clean','green','mean','seen'],  correct:1 },
+      { type:'listen', text:'yellow', cn:'黃色',  emoji:'💛', choices:['fellow','yellow','below','hello'], correct:1 },
+      { type:'listen', text:'cat',    cn:'貓',   emoji:'🐱', choices:['cat','bat','hat','rat'],        correct:0 },
+      { type:'listen', text:'dog',    cn:'狗',   emoji:'🐶', choices:['fog','log','dog','hog'],        correct:2 },
+      { type:'listen', text:'fish',   cn:'魚',   emoji:'🐟', choices:['dish','wish','fish','kiss'],    correct:2 },
+      { type:'listen', text:'rabbit', cn:'兔子',  emoji:'🐰', choices:['rabbit','habit','cabin','tablet'], correct:0 },
+      { type:'listen', text:'book',   cn:'書',   emoji:'📚', choices:['book','look','cook','hook'],    correct:0 },
+      { type:'listen', text:'pencil', cn:'鉛筆',  emoji:'✏️', choices:['pencil','stencil','cancel','council'], correct:0 },
+      { type:'listen', text:'ruler',  cn:'尺',   emoji:'📏', choices:['ruler','color','cooler','taller'], correct:0 },
       { type:'phonics', word:'cat', slots:['c','_','t'], answer:'a', emoji:'🐱', choices:['a','i','o','u'] },
       { type:'phonics', word:'dog', slots:['d','_','g'], answer:'o', emoji:'🐶', choices:['a','e','o','u'] },
       { type:'phonics', word:'hen', slots:['h','_','n'], answer:'e', emoji:'🐔', choices:['a','e','i','o'] },
       { type:'phonics', word:'pig', slots:['p','_','g'], answer:'i', emoji:'🐷', choices:['a','e','i','o'] },
       { type:'phonics', word:'cup', slots:['c','_','p'], answer:'u', emoji:'☕', choices:['a','e','i','u'] },
       { type:'phonics', word:'bat', slots:['b','_','t'], answer:'a', emoji:'🦇', choices:['a','e','i','u'] },
-      { type:'fill', sentence:'I have a ___ .', answer:'cat',  emoji:'🐱', choices:['cat','run','blue','fast'], hint:'名詞' },
-      { type:'fill', sentence:'The sky is ___ .', answer:'blue', emoji:'🌤️', choices:['blue','happy','run','book'], hint:'顏色' },
-      { type:'fill', sentence:'I can ___ fast!', answer:'run',  emoji:'🏃', choices:['run','blue','hot','pen'],   hint:'動詞' },
-      { type:'fill', sentence:'The apple is ___ .', answer:'red', emoji:'🍎', choices:['red','book','swim','tall'],  hint:'顏色' },
-      { type:'fill', sentence:'She has two ___ .', answer:'dogs', emoji:'🐶', choices:['dogs','run','big','fast'],   hint:'複數名詞' },
-      { type:'fill', sentence:'He is a ___ boy.', answer:'good', emoji:'👦', choices:['good','run','hot','blue'],   hint:'形容詞' },
+      { type:'phonics', word:'box', slots:['b','_','x'], answer:'o', emoji:'📦', choices:['a','e','o','u'] },
+      { type:'phonics', word:'sun', slots:['s','_','n'], answer:'u', emoji:'☀️', choices:['a','e','i','u'] },
+      { type:'fill', sentence:"What's ___? It's a book.", answer:'this', emoji:'📚', choices:['this','that','these','those'], hint:'近處單數' },
+      { type:'fill', sentence:'The apple is ___ .', answer:'red',  emoji:'🍎', choices:['red','book','swim','tall'], hint:'顏色' },
+      { type:'fill', sentence:'I have a ___ .', answer:'cat', emoji:'🐱', choices:['cat','run','blue','fast'], hint:'名詞' },
+      { type:'fill', sentence:'___ color is it? It\'s blue.', answer:'What', emoji:'💙', choices:['What','How','Who','Where'], hint:'問顏色' },
+      { type:'fill', sentence:'Good ___ , teacher!', answer:'morning', emoji:'🌞', choices:['morning','night','thank','sorry'], hint:'早上問候' },
+      { type:'fill', sentence:'___ are you? I\'m fine.', answer:'How', emoji:'😊', choices:['How','What','Where','Who'], hint:'問候語' },
+      { type:'video', videoId:'tQASh8bbkUY', cn:'Colors Song 2',
+        question:'影片中，天空的顏色是什麼？', choices:['red','blue','green','yellow'], correct:1 },
+      { type:'video', videoId:'D0Ajq682yrA', cn:'Number Song 1-20',
+        question:'影片中唱到最大的數字是？', choices:['10','20','30','50'], correct:1 },
+      { type:'video', videoId:'zMdq9jSaNLg', cn:"What's Your Name? Song",
+        question:'影片用什麼句子問名字？', choices:["What's your name?","How old are you?","Where are you?","Are you OK?"], correct:0 },
     ]
   },
   medium: {
-    label:'中級 Medium', color:'#5b8def', bg:'#e8f0ff', stars:2, emoji:'🌿',
-    desc:'日常對話・動詞時態・常用句型',
+    label:'四年級 Medium', color:'#5b8def', bg:'#e8f0ff', stars:2, emoji:'🌿',
+    desc:'翰林四年級・情緒・職業・能力・食物',
     questions:[
-      { type:'listen', text:'Where is the library?', cn:'圖書館在哪裡？', emoji:'📚',
-        choices:['What is the library?','Where is the library?','When is the library open?','Who is the librarian?'], correct:1 },
-      { type:'listen', text:'I would like some coffee, please.', cn:'我想要咖啡，謝謝。', emoji:'☕',
-        choices:['I would like some tea.','Can I have water?','I would like some coffee, please.','Do you have juice?'], correct:2 },
-      { type:'listen', text:'What time does the bus leave?', cn:'公車幾點開？', emoji:'🚌',
-        choices:['Where does the bus go?','What time does the bus leave?','How long is the bus ride?','Which bus should I take?'], correct:1 },
-      { type:'listen', text:'I have been here for three days.', cn:'我在這裡已經三天了。', emoji:'📅',
-        choices:['I was here three days ago.','I will be here for three days.','I have been here for three days.','I am here every three days.'], correct:2 },
-      { type:'listen', text:'How much does this cost?', cn:'這個多少錢？', emoji:'💰',
-        choices:['How much is this?','How much does this cost?','How many do you want?','What is the price?'], correct:1 },
-      { type:'fill', sentence:'She ___ to school every day.', answer:'goes', emoji:'🏫',
-        choices:['goes','go','going','went'], hint:'第三人稱單數' },
-      { type:'fill', sentence:'They ___ playing football now.', answer:'are', emoji:'⚽',
-        choices:['are','is','was','were'], hint:'現在進行式' },
-      { type:'fill', sentence:'I ___ dinner last night.', answer:'cooked', emoji:'🍳',
-        choices:['cooked','cook','cooking','cooks'], hint:'過去式' },
-      { type:'fill', sentence:'He is ___ than his brother.', answer:'taller', emoji:'📏',
-        choices:['taller','tall','tallest','more tall'], hint:'比較級' },
-      { type:'fill', sentence:'There ___ many books on the shelf.', answer:'are', emoji:'📚',
-        choices:['are','is','was','has'], hint:'複數動詞' },
-      { type:'fill', sentence:'She asked me ___ the door.', answer:'to close', emoji:'🚪',
-        choices:['to close','closing','close','closed'], hint:'不定詞' },
-      { type:'fill', sentence:'___ you like to have lunch with us?', answer:'Would', emoji:'🍽️',
-        choices:['Would','Should','Could','Must'], hint:'禮貌用語' },
-      { type:'order', words:['reads','she','every','books','day'], answer:'she reads books every day', emoji:'📚' },
-      { type:'order', words:['is','where','cat','the','?'], answer:'where is the cat ?', emoji:'🐱' },
-      { type:'order', words:['library','went','to','yesterday','i','the'], answer:'i went to the library yesterday', emoji:'📖' },
-      { type:'order', words:['raining','it','is','today'], answer:'it is raining today', emoji:'🌧️' },
-      { type:'order', words:['football','they','are','playing'], answer:'they are playing football', emoji:'⚽' },
+      { type:'listen', text:'Are you happy?', cn:'你快樂嗎？', emoji:'😊',
+        choices:['Are you hungry?','Are you happy?','Are you heavy?','Are you healthy?'], correct:1 },
+      { type:'listen', text:'I am sad.', cn:'我很難過。', emoji:'😢',
+        choices:['I am mad.','I am bad.','I am sad.','I am glad.'], correct:2 },
+      { type:'listen', text:'He is angry.', cn:'他很生氣。', emoji:'😠',
+        choices:['He is hungry.','He is angry.','He is sorry.','He is heavy.'], correct:1 },
+      { type:'listen', text:'She is tired.', cn:'她很累。', emoji:'😴',
+        choices:['She is tired.','She is bored.','She is scared.','She is worried.'], correct:0 },
+      { type:'listen', text:'Can you swim?', cn:'你會游泳嗎？', emoji:'🏊',
+        choices:['Can you sing?','Can you swim?','Can you skip?','Can you spin?'], correct:1 },
+      { type:'listen', text:'Yes, I can.', cn:'是的，我會。', emoji:'👍',
+        choices:["No, I can't.",'Yes, I can.','Yes, I do.',"No, I don't."], correct:1 },
+      { type:'listen', text:'Do you like papayas?', cn:'你喜歡木瓜嗎？', emoji:'🍈',
+        choices:['Do you like bananas?','Do you like papayas?','Do you like pizzas?','Do you like potatoes?'], correct:1 },
+      { type:'listen', text:'I like broccoli.', cn:'我喜歡花椰菜。', emoji:'🥦',
+        choices:['I like broccoli.','I like broccoli soup.','I hate broccoli.','I need broccoli.'], correct:0 },
+      { type:'listen', text:'Is he a teacher?', cn:'他是老師嗎？', emoji:'👨‍🏫',
+        choices:['Is he a student?','Is he a teacher?','Is she a teacher?','Are they teachers?'], correct:1 },
+      { type:'fill', sentence:'___ your brother a cook?', answer:'Is', emoji:'👨‍🍳',
+        choices:['Is','Are','Do','Does'], hint:'Be動詞' },
+      { type:'fill', sentence:'She is not happy. She is ___.', answer:'sad', emoji:'😢',
+        choices:['sad','mad','bad','glad'], hint:'反義詞' },
+      { type:'fill', sentence:'I am ___. I want to eat.', answer:'hungry', emoji:'🍽️',
+        choices:['hungry','angry','heavy','happy'], hint:'情緒' },
+      { type:'fill', sentence:'___ you ride a bike?', answer:'Can', emoji:'🚲',
+        choices:['Can','Do','Are','Is'], hint:'問能力' },
+      { type:'fill', sentence:'He can sing ___ dance.', answer:'and', emoji:'🎤',
+        choices:['and','or','but','so'], hint:'連接詞' },
+      { type:'fill', sentence:'Do you ___ broccoli? Yes, I do.', answer:'like', emoji:'🥦',
+        choices:['like','eat','want','have'], hint:'動詞' },
+      { type:'order', words:['you','can','swim','?'], answer:'can you swim ?', emoji:'🏊' },
+      { type:'order', words:['is','he','sad','?'], answer:'is he sad ?', emoji:'😢' },
+      { type:'order', words:['not','I','broccoli','like','do'], answer:'I do not like broccoli', emoji:'🥦' },
+      { type:'order', words:['she','a','cook','is','?'], answer:'is she a cook ?', emoji:'👩‍🍳' },
+      { type:'video', videoId:'ZWu5P7OuMIE', cn:'Can You Swim? Song',
+        question:'影片的主題是關於什麼能力？', choices:['游泳','唱歌','跳舞','畫畫'], correct:0 },
+      { type:'video', videoId:'eMOnyPxE_w8', cn:'Are You Happy? Song',
+        question:'下列哪個是影片中的情緒單字？', choices:['hungry','happy','heavy','healthy'], correct:1 },
+      { type:'video', videoId:'frN3nvhIHUk', cn:'Do You Like Broccoli? Song',
+        question:'影片主要在問什麼？', choices:['詢問食物偏好','詢問天氣','詢問地點','詢問時間'], correct:0 },
     ]
   },
   hard: {
-    label:'進階 Hard', color:'#9b59b6', bg:'#f3eaff', stars:3, emoji:'🌳',
-    desc:'片語動詞・完成式・條件句',
+    label:'五年級 Hard', color:'#9b59b6', bg:'#f3eaff', stars:3, emoji:'🌳',
+    desc:'翰林五年級・天氣・地點・時間・活動',
     questions:[
-      { type:'listen', text:'Could you please turn down the music?', cn:'可以把音樂關小聲嗎？', emoji:'🎵',
-        choices:['Could you turn up the music?','Could you please turn down the music?','Can you play some music?','Would you turn off the music?'], correct:1 },
-      { type:'listen', text:"I've been waiting here for over an hour.", cn:'我在這裡等了超過一個小時。', emoji:'⏰',
-        choices:["I waited here for an hour.","I've been waiting here for over an hour.","I will wait here for an hour.","I was waiting here an hour ago."], correct:1 },
-      { type:'listen', text:'If I had studied harder, I would have passed.', cn:'如果當時更努力，我就通過了。', emoji:'📖',
-        choices:['If I study harder, I will pass.','If I had studied harder, I would have passed.','If I study, I would pass.','I studied hard so I passed.'], correct:1 },
-      { type:'listen', text:'The project must be completed by Friday.', cn:'此專案必須在週五前完成。', emoji:'📋',
-        choices:['The project should be done on Friday.','The project must be completed by Friday.','The project was finished last Friday.','The project will start on Friday.'], correct:1 },
-      { type:'fill', sentence:"I'm looking ___ my keys.", answer:'for', emoji:'🔑',
-        choices:['for','at','up','on'], hint:'介系詞' },
-      { type:'fill', sentence:'She gave ___ smoking last year.', answer:'up', emoji:'🚭',
-        choices:['up','out','off','in'], hint:'片語動詞' },
-      { type:'fill', sentence:'The meeting was called ___ due to rain.', answer:'off', emoji:'📅',
-        choices:['off','out','up','in'], hint:'片語動詞' },
-      { type:'fill', sentence:'He ___ been studying for three hours.', answer:'has', emoji:'📖',
-        choices:['has','have','had','having'], hint:'現在完成式' },
-      { type:'fill', sentence:'You ___ wear a seatbelt in a car.', answer:'must', emoji:'🚗',
-        choices:['must','might','could','should'], hint:'義務情態' },
-      { type:'fill', sentence:'The book was written ___ Shakespeare.', answer:'by', emoji:'📜',
-        choices:['by','from','with','of'], hint:'被動式' },
-      { type:'fill', sentence:'She ___ the offer if she had known.', answer:'would have taken', emoji:'💼',
-        choices:['would have taken','would take','will take','has taken'], hint:'假設過去' },
-      { type:'order', words:['for','she','waiting','has','two','been','hours'], answer:'she has been waiting for two hours', emoji:'⏰' },
-      { type:'order', words:['smoking','he','given','has','up'], answer:'he has given up smoking', emoji:'🚭' },
-      { type:'order', words:["you'll",'if','study','hard','you','pass'], answer:"if you study hard you'll pass", emoji:'📚' },
-      { type:'order', words:['rain','if','it','stay','will','we','inside'], answer:'if it rains we will stay inside', emoji:'🌧️' },
+      { type:'listen', text:"How's the weather?", cn:'天氣怎麼樣？', emoji:'🌤️',
+        choices:["How's the weather?","What's the weather?","Where's the weather?","When's the weather?"], correct:0 },
+      { type:'listen', text:"It's sunny today.", cn:'今天是晴天。', emoji:'☀️',
+        choices:["It's cloudy today.","It's sunny today.","It's rainy today.","It's snowy today."], correct:1 },
+      { type:'listen', text:"We can't go out. It's raining.", cn:'我們不能出去，在下雨。', emoji:'🌧️',
+        choices:["We can go out.","We can't go out. It's raining.","We can't go out. It's sunny.","We must go out."], correct:1 },
+      { type:'listen', text:'Where are you going?', cn:'你要去哪裡？', emoji:'📍',
+        choices:["Where are you going?","Where have you been?","When are you going?","Why are you going?"], correct:0 },
+      { type:'listen', text:"I'm going to the library.", cn:'我要去圖書館。', emoji:'📚',
+        choices:["I'm going to the bookstore.","I'm going to the hospital.","I'm going to the library.","I'm going to the bank."], correct:2 },
+      { type:'listen', text:'What time is it?', cn:'現在幾點？', emoji:'🕐',
+        choices:['What day is it?','What time is it?','What date is it?','What year is it?'], correct:1 },
+      { type:'listen', text:"It's seven thirty.", cn:'七點三十分。', emoji:'⏰',
+        choices:["It's seven o'clock.","It's seven fifteen.","It's seven thirty.","It's seven forty-five."], correct:2 },
+      { type:'listen', text:'What are you doing?', cn:'你在做什麼？', emoji:'🎯',
+        choices:["What did you do?","What are you doing?","What will you do?","What do you do?"], correct:1 },
+      { type:'listen', text:"I'm reading a book.", cn:'我在看書。', emoji:'📖',
+        choices:["I'm writing a book.","I'm reading a book.","I'm buying a book.","I'm lending a book."], correct:1 },
+      { type:'fill', sentence:"___ the weather? It's cloudy.", answer:"How's", emoji:'☁️',
+        choices:["How's","What's","Where's","When's"], hint:'問天氣' },
+      { type:'fill', sentence:"It's windy. We ___ fly kites!", answer:'can', emoji:'🪁',
+        choices:['can','cannot','should','must'], hint:'能力' },
+      { type:'fill', sentence:'Where ___ you going? To the park.', answer:'are', emoji:'🌳',
+        choices:['are','is','were','was'], hint:'進行式' },
+      { type:'fill', sentence:"___ time is it? It's three o'clock.", answer:'What', emoji:'🕒',
+        choices:['What','When','Where','How'], hint:'問時間' },
+      { type:'fill', sentence:'She is ___ at the library now.', answer:'studying', emoji:'📚',
+        choices:['studying','studied','studies','study'], hint:'現在進行式' },
+      { type:'order', words:["how's","the","weather","today","?"], answer:"how's the weather today ?", emoji:'🌤️' },
+      { type:'order', words:['where','are','you','going','?'], answer:'where are you going ?', emoji:'📍' },
+      { type:'order', words:['she','is','reading','a','book'], answer:'she is reading a book', emoji:'📖' },
+      { type:'order', words:["it's","seven","thirty"], answer:"it's seven thirty", emoji:'⏰' },
+      { type:'video', videoId:'T4YvWb0WMRQ', cn:'Weather Song',
+        question:'下列哪個不是常見天氣單字？', choices:['cloudy','rainy','sunny','dark'], correct:3 },
+      { type:'video', videoId:'iRuoRzU0MPE', cn:'Days of the Week Song',
+        question:'一週有幾天？', choices:['5天','6天','7天','8天'], correct:2 },
+      { type:'video', videoId:'CXKj7bm4Ops', cn:'Where Are You Going? Song',
+        question:'影片在練習問什麼？', choices:['問地點','問天氣','問時間','問名字'], correct:0 },
     ]
   },
   expert: {
@@ -855,6 +891,72 @@ function OrderQuestion({ q, onAnswer }) {
 }
 
 // ── Quiz screen ───────────────────────────────────────────────────────────────
+// ── Video Question ────────────────────────────────────────────────────────────
+function VideoQuestion({ q, onAnswer }) {
+  const [played,  setPlayed]  = React.useState(false);
+  const [picked,  setPicked]  = React.useState(null);
+  const thumb = `https://img.youtube.com/vi/${q.videoId}/mqdefault.jpg`;
+
+  const pick = (i) => {
+    if (picked !== null) return;
+    setPicked(i);
+    onAnswer(i === q.correct);
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize:12, fontWeight:800, color:'#e94f5b', letterSpacing:0.5, marginBottom:8 }}>
+        🎬 觀看影片後回答問題
+      </div>
+
+      {/* Video embed */}
+      <div style={{ borderRadius:14, overflow:'hidden', marginBottom:14, position:'relative', paddingTop:'56.25%', background:'#000' }}>
+        {played
+          ? <iframe style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', border:'none' }}
+              src={`https://www.youtube.com/embed/${q.videoId}?autoplay=1`}
+              allow="autoplay; encrypted-media" allowFullScreen />
+          : <div onClick={() => setPlayed(true)} style={{
+              position:'absolute', top:0, left:0, width:'100%', height:'100%',
+              background:`url(${thumb}) center/cover no-repeat`,
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(255,0,0,0.88)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                boxShadow:'0 4px 16px rgba(0,0,0,0.4)' }}>
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div style={{ position:'absolute', bottom:8, right:10, fontSize:11, color:'#fff',
+                fontWeight:700, background:'rgba(0,0,0,0.6)', padding:'2px 8px', borderRadius:6 }}>
+                {q.cn}
+              </div>
+            </div>
+        }
+      </div>
+
+      {/* Question */}
+      <div style={{ fontSize:16, fontWeight:700, color:'#2d3a2e', marginBottom:14, lineHeight:1.4 }}>
+        {q.question}
+      </div>
+
+      {/* Choices */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        {q.choices.map((c, i) => {
+          const isRight  = picked !== null && i === q.correct;
+          const isWrong  = picked === i && i !== q.correct;
+          return (
+            <button key={i} onClick={() => pick(i)} style={{
+              padding:'12px 10px', borderRadius:14, fontSize:14, fontWeight:700, cursor: picked===null ? 'pointer' : 'default',
+              background: isRight ? '#dff3e1' : isWrong ? '#ffdcdc' : picked !== null ? '#f5f5f5' : '#f5f5f5',
+              border: isRight ? '2px solid #3aa56b' : isWrong ? '2px solid #d65a5a' : '2px solid transparent',
+              color: isRight ? '#3aa56b' : isWrong ? '#d65a5a' : '#2d3a2e',
+            }}>{c}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
   const diff = QB[difficulty];
   const [current,    setCurrent]    = React.useState(0);
@@ -883,7 +985,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
     else setCurrent(c => c+1);
   };
 
-  const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句' };
+  const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句', video:'🎬 影片' };
 
   return (
     <div style={{ maxWidth:600, margin:'0 auto', padding:'20px 16px', position:'relative' }}>
@@ -955,6 +1057,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
         {q.type==='phonics' && <PhonicsQuestion key={current} q={q} onAnswer={handleAnswer}/>}
         {q.type==='fill'    && <FillQuestion    key={current} q={q} onAnswer={handleAnswer}/>}
         {q.type==='order'   && <OrderQuestion   key={current} q={q} onAnswer={handleAnswer}/>}
+        {q.type==='video'   && <VideoQuestion   key={current} q={q} onAnswer={handleAnswer}/>}
 
         {feedback && (
           <div className="slide-up" style={{
@@ -1126,8 +1229,14 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
 
 // ── Home screen ───────────────────────────────────────────────────────────────
 function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
-  const [count, setCount] = React.useState(10);
+  const [count,     setCount]     = React.useState(10);
+  const [userCount, setUserCount] = React.useState(null);
   const p = ensureDaily(prog);
+
+  React.useEffect(() => {
+    sb.from('site_stats').select('value').eq('key','user_count').single()
+      .then(({ data }) => { if (data) setUserCount(data.value); });
+  }, []);
   const lv = getLevel(p.xp);
   const daily = p.daily;
   const todayTasks = TASK_POOL.filter(t => daily.taskIds.includes(t.id));
@@ -1144,6 +1253,13 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
         <h1 style={{ fontSize:28, fontWeight:800, fontFamily:'Fredoka, sans-serif',
           color:'#2d3a2e', margin:'6px 0 2px' }}>Pip's English Practice</h1>
         <p style={{ color:'#888', fontSize:13, fontWeight:600 }}>選擇難度，開始練習！每次題目都不一樣 🎲</p>
+        {userCount !== null && (
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, marginTop:6,
+            background:'linear-gradient(135deg,#5b8def22,#3aa56b22)', borderRadius:20,
+            padding:'4px 14px', fontSize:12, fontWeight:800, color:'#3aa56b' }}>
+            👥 已有 <span style={{ fontSize:16, fontFamily:'Fredoka' }}>{userCount}</span> 位學習者加入
+          </div>
+        )}
       </div>
 
       {/* Profile card */}
