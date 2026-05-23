@@ -855,12 +855,13 @@ function OrderQuestion({ q, onAnswer }) {
 }
 
 // ── Quiz screen ───────────────────────────────────────────────────────────────
-function QuizScreen({ questions, difficulty, onFinish }) {
+function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
   const diff = QB[difficulty];
-  const [current,  setCurrent]  = React.useState(0);
-  const [results,  setResults]  = React.useState([]);
-  const [feedback, setFeedback] = React.useState(null);
-  const [xpFloats, setXpFloats] = React.useState([]);
+  const [current,    setCurrent]    = React.useState(0);
+  const [results,    setResults]    = React.useState([]);
+  const [feedback,   setFeedback]   = React.useState(null);
+  const [xpFloats,   setXpFloats]   = React.useState([]);
+  const [showQuit,   setShowQuit]   = React.useState(false);
 
   const q       = questions[current];
   const correct = results.filter(Boolean).length;
@@ -896,6 +897,11 @@ function QuizScreen({ questions, difficulty, onFinish }) {
       ))}
 
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+        <button onClick={() => setShowQuit(true)} className="btn-press" style={{
+          width:34, height:34, borderRadius:10, border:'none', background:'rgba(0,0,0,0.06)',
+          fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          flexShrink:0,
+        }}>✕</button>
         <span style={{ fontSize:22 }}>{diff.emoji}</span>
         <span style={{ fontSize:13, fontWeight:800, color:diff.color, letterSpacing:1 }}>
           {diff.label.toUpperCase()}
@@ -905,6 +911,33 @@ function QuizScreen({ questions, difficulty, onFinish }) {
           {qLabel[q.type]}
         </div>
       </div>
+
+      {/* Quit confirmation */}
+      {showQuit && (
+        <div className="modal-bg">
+          <div style={{ background:'#fff', borderRadius:24, padding:28, maxWidth:320, width:'100%',
+            boxShadow:'0 20px 60px rgba(0,0,0,0.25)', textAlign:'center' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>⚠️</div>
+            <div style={{ fontSize:18, fontWeight:800, color:'#2d3a2e', fontFamily:'Fredoka', marginBottom:8 }}>
+              確定要結束練習？
+            </div>
+            <div style={{ fontSize:13, color:'#e94f5b', fontWeight:700, marginBottom:20, lineHeight:1.5 }}>
+              提前結束將無法累積經驗值
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setShowQuit(false)} className="btn-press" style={{
+                flex:1, padding:'12px 0', borderRadius:14, border:'2px solid #e0e0e0',
+                background:'#fff', fontSize:14, fontWeight:800, color:'#5a6a5e', cursor:'pointer',
+              }}>繼續練習</button>
+              <button onClick={onQuit} className="btn-press" style={{
+                flex:1, padding:'12px 0', borderRadius:14, border:'none',
+                background:'#e94f5b', color:'#fff', fontSize:14, fontWeight:800,
+                boxShadow:'0 4px 0 #c03a47', cursor:'pointer',
+              }}>結束</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress */}
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
@@ -1386,7 +1419,7 @@ function App() {
     <div>
       {/* 登出按鈕 */}
       <div style={{ position:'fixed', top:12, right:16, zIndex:500 }}>
-        <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
+        <button onClick={() => { setScreen('home'); sb.auth.signOut(); }} className="btn-press" style={{
           display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
           background:'rgba(255,255,255,0.85)', backdropFilter:'blur(8px)',
           border:'1.5px solid #e0e0e0', borderRadius:10,
@@ -1406,7 +1439,8 @@ function App() {
       {screen === 'quiz' && (
         <QuizScreen
           key={questions.map(q=>q.text||q.word||q.sentence||'').join()}
-          questions={questions} difficulty={difficulty} onFinish={finishQuiz}/>
+          questions={questions} difficulty={difficulty} onFinish={finishQuiz}
+          onQuit={() => setScreen('home')}/>
       )}
       {screen === 'results' && sessionResult && (
         <ResultsScreen results={results} difficulty={difficulty} questions={questions}
