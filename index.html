@@ -1419,7 +1419,7 @@ function App() {
     <div>
       {/* 登出按鈕 */}
       <div style={{ position:'fixed', top:12, right:16, zIndex:500 }}>
-        <button onClick={() => { setScreen('home'); sb.auth.signOut(); }} className="btn-press" style={{
+        <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
           display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
           background:'rgba(255,255,255,0.85)', backdropFilter:'blur(8px)',
           border:'1.5px solid #e0e0e0', borderRadius:10,
