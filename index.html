@@ -346,7 +346,7 @@ function processSession({ prog, results, difficulty, questions }) {
     }
   });
   const allDailyNowDone = taskDefs.length > 0 && taskDefs.every(t => p.daily.done.includes(t.id));
-  if (allDailyNowDone && !prog.daily?.done?.length === 0) p.allDailyDone += 1;
+  if (allDailyNowDone && (prog.daily?.done?.length || 0) < taskDefs.length) p.allDailyDone += 1;
 
   // Check badge unlocks
   const prevBadges = new Set(prog.badges || []);
