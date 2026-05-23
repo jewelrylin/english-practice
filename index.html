@@ -35,9 +35,13 @@
       background-size: 40px 40px;
       min-height: 100vh;
       font-family: 'Fredoka', system-ui, sans-serif;
+      font-weight: 400;
       color: var(--text);
     }
     button { font-family: inherit; cursor: pointer; }
+    /* 減少過度粗體：說明文字、提示文字保持正常粗細 */
+    .rb-hint { font-weight: 400; color: var(--sub); font-size: 13px; }
+    .rb-label { font-weight: 600; }
 
     /* ── Animations ────────────────────────────────────── */
     @keyframes slideUp  { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
@@ -550,8 +554,8 @@ function XPBar({ xp, color='#3B82F6', compact=false }) {
         {!compact && <span style={{ color:'#000', fontSize:8, fontWeight:800, opacity:0.7 }}>RANK</span>}
       </div>
       <div style={{ flex:1, minWidth:0 }}>
-        {!compact && <div style={{ fontSize:12, fontWeight:700, color:'#94A3B8', marginBottom:4 }}>
-          <span style={{ color:rc, fontWeight:800 }}>{LEVEL_TITLES[lv-1]}</span>
+        {!compact && <div style={{ fontSize:12, fontWeight:400, color:'#94A3B8', marginBottom:4 }}>
+          <span style={{ color:rc, fontWeight:700 }}>{LEVEL_TITLES[lv-1]}</span>
           {' · '}{xp} XP {nxt ? `→ ${nxt}` : '🏆 MAX'}
         </div>}
         {/* Game health bar */}
@@ -559,7 +563,7 @@ function XPBar({ xp, color='#3B82F6', compact=false }) {
           <div className="xp-fill" style={{ width:`${pct}%`,
             background:`linear-gradient(90deg, ${rc}, ${shade(rc,20)})` }}/>
         </div>
-        {!compact && nxt && <div style={{ fontSize:10, color:'#64748B', marginTop:3, fontWeight:700 }}>
+        {!compact && nxt && <div style={{ fontSize:10, color:'#64748B', marginTop:3, fontWeight:400 }}>
           ⚡ 再 {nxt-xp} XP 升級
         </div>}
       </div>
@@ -580,7 +584,7 @@ function TasksModal({ prog, onClose }) {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC' }}>📋 每日任務</div>
-            <div style={{ fontSize:12, color:'#64748B', fontWeight:700 }}>每天重新整理 · 完成獲得 XP 獎勵</div>
+            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>每天重新整理 · 完成獲得 XP 獎勵</div>
           </div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
             borderRadius:8, width:36, height:36, fontSize:16, cursor:'pointer', color:'#94A3B8',
@@ -611,7 +615,7 @@ function TasksModal({ prog, onClose }) {
                       {t.name}
                       {done && <span style={{ marginLeft:8, fontSize:12, color:'#10B981' }}>✓ COMPLETE!</span>}
                     </div>
-                    <div style={{ fontSize:12, color:'#64748B', fontWeight:700, marginTop:1 }}>{t.desc}</div>
+                    <div style={{ fontSize:12, color:'#64748B', fontWeight:400, marginTop:1 }}>{t.desc}</div>
                     <div className="xp-track" style={{ marginTop:8, height:6 }}>
                       <div style={{ height:'100%', width:`${pct}%`, borderRadius:4,
                         background: done ? '#10B981' : '#3B82F6', transition:'width .4s' }}/>
@@ -631,7 +635,7 @@ function TasksModal({ prog, onClose }) {
         </div>
 
         <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #334155', padding:'12px 16px' }}>
-          <div style={{ fontSize:12, fontWeight:800, color:'#64748B', marginBottom:8, letterSpacing:1 }}>📊 TODAY'S STATS</div>
+          <div style={{ fontSize:11, fontWeight:600, color:'#64748B', marginBottom:8, letterSpacing:1 }}>📊 TODAY'S STATS</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, textAlign:'center' }}>
             {[
               { label:'已答題', value: daily.answered, color:'#3B82F6' },
@@ -661,7 +665,7 @@ function BadgesModal({ prog, onClose }) {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC' }}>🏅 成就徽章</div>
-            <div style={{ fontSize:12, color:'#64748B', fontWeight:700 }}>
+            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>
               已解鎖 {earnedCount} / {BADGE_DEFS.length} 個
             </div>
           </div>
@@ -684,7 +688,7 @@ function BadgesModal({ prog, onClose }) {
                 <div style={{ fontSize:32, filter: has ? 'none' : 'grayscale(1) brightness(0.5)' }}>{b.emoji}</div>
                 <div style={{ fontSize:13, fontWeight:800, color: has ? '#F59E0B' : '#475569',
                   fontFamily:'Fredoka, sans-serif', marginTop:4 }}>{b.name}</div>
-                <div style={{ fontSize:11, color: has ? '#94A3B8' : '#334155', marginTop:2, fontWeight:700 }}>{b.desc}</div>
+                <div style={{ fontSize:11, color: has ? '#94A3B8' : '#334155', marginTop:2, fontWeight:400 }}>{b.desc}</div>
                 {!has && <div style={{ fontSize:10, color:'#334155', marginTop:4, fontWeight:800 }}>🔒 LOCKED</div>}
               </div>
             );
@@ -717,7 +721,7 @@ function ListenQuestion({ q, onAnswer }) {
   return (
     <div className="slide-up">
       <div style={{ textAlign:'center', marginBottom:20 }}>
-        <div style={{ fontSize:12, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>👂 聆聽並選出你聽到的句子</div>
+        <div style={{ fontSize:13, fontWeight:400, color:'#94A3B8', letterSpacing:0.5, marginBottom:8 }}>👂 聆聽並選出你聽到的句子</div>
         <div style={{ fontSize:50, marginBottom:12 }}>{q.emoji}</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:14, background:'#0F1A2E',
           border:'3px solid #334155', borderRadius:999, padding:'10px 20px', cursor:'pointer' }} onClick={play}>
@@ -732,7 +736,7 @@ function ListenQuestion({ q, onAnswer }) {
           </div>
           <SoundWave active={playing} color="#3B82F6" bars={14}/>
         </div>
-        <div style={{ fontSize:12, color:'#64748B', marginTop:8, fontWeight:700 }}>點擊播放音訊 · 可重複播放</div>
+        <div style={{ fontSize:12, color:'#64748B', marginTop:8, fontWeight:400 }}>點擊播放音訊 · 可重複播放</div>
       </div>
       <div style={{ display:'grid', gap:10 }}>
         {choices.map((c, i) => {
@@ -786,7 +790,7 @@ function PhonicsQuestion({ q, onAnswer }) {
   return (
     <div className="slide-up">
       <div style={{ textAlign:'center', marginBottom:20 }}>
-        <div style={{ fontSize:12, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>🔤 填入缺少的字母，拼出這個單字</div>
+        <div style={{ fontSize:13, fontWeight:400, color:'#94A3B8', letterSpacing:0.5, marginBottom:8 }}>🔤 填入缺少的字母，拼出這個單字</div>
         <div style={{ fontSize:64, marginBottom:10 }}>{q.emoji}</div>
         <button onClick={() => speakEn(q.word, 0.7)} style={{ background:'#3B82F6', border:'3px solid #000',
           borderRadius:8, padding:'8px 20px', color:'#fff', fontSize:13, fontWeight:800,
@@ -872,7 +876,7 @@ function FillQuestion({ q, onAnswer }) {
   return (
     <div className="slide-up">
       <div style={{ textAlign:'center', marginBottom:20 }}>
-        <div style={{ fontSize:12, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>📝 選擇正確的單字，填入空格</div>
+        <div style={{ fontSize:13, fontWeight:400, color:'#94A3B8', letterSpacing:0.5, marginBottom:8 }}>📝 選擇正確的單字，填入空格</div>
         <div style={{ fontSize:52, marginBottom:12 }}>{q.emoji}</div>
         <div style={{ background:'#0F1A2E', border:'3px solid #334155', borderRadius:12, padding:'16px 20px',
           fontSize:18, fontWeight:700, lineHeight:1.8, marginBottom:4, color:'#F8FAFC' }}>
@@ -890,7 +894,7 @@ function FillQuestion({ q, onAnswer }) {
           }}>{picked===null ? '___' : choices[picked].label}</span>
           {parts[1]}
         </div>
-        {q.hint && <div style={{ fontSize:12, color:'#64748B', marginTop:4, fontWeight:700 }}>💡 提示：{q.hint}</div>}
+        {q.hint && <div style={{ fontSize:12, color:'#94A3B8', marginTop:4, fontWeight:400 }}>💡 提示：{q.hint}</div>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {choices.map((c, i) => {
@@ -945,7 +949,7 @@ function OrderQuestion({ q, onAnswer }) {
 
   return (
     <div className="slide-up">
-      <div style={{ fontSize:12, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8, textAlign:'center' }}>
+      <div style={{ fontSize:13, fontWeight:400, color:'#94A3B8', letterSpacing:0.5, marginBottom:8, textAlign:'center' }}>
         🔀 點擊單字，排列成正確的句子 {q.emoji}
       </div>
       <div style={{ minHeight:72, background:'#0F1A2E', borderRadius:10, padding:'12px 14px',
@@ -1113,16 +1117,23 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
       ))}
 
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+        {/* 退出按鈕 — 明顯紅底 */}
         <button onClick={() => setShowQuit(true)} className="btn-press" style={{
-          width:34, height:34, borderRadius:10, border:'none', background:'rgba(0,0,0,0.06)',
-          fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-          flexShrink:0,
+          width:36, height:36, borderRadius:8, border:'3px solid #7F1D1D',
+          background:'#EF4444', color:'#fff',
+          fontSize:16, fontWeight:700, cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          flexShrink:0, boxShadow:'0 4px 0 #7F1D1D',
         }}>✕</button>
-        <span style={{ fontSize:22 }}>{diff.emoji}</span>
-        <span style={{ fontSize:13, fontWeight:800, color:diff.color, letterSpacing:1 }}>
-          {diff.label.toUpperCase()}
-        </span>
-        <div style={{ marginLeft:'auto', fontSize:12, fontWeight:800, color:'#94A3B8',
+        {/* Pip 人物 */}
+        <div style={{ flexShrink:0 }}><Pip size={36} pose="idle"/></div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:diff.color, letterSpacing:0.5,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {diff.emoji} {diff.label}
+          </div>
+        </div>
+        <div style={{ flexShrink:0, fontSize:12, fontWeight:600, color:'#94A3B8',
           background:'#1E293B', border:'2px solid #334155', borderRadius:8, padding:'4px 10px' }}>
           {qLabel[q.type]}
         </div>
@@ -1164,11 +1175,11 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
             background:`linear-gradient(90deg, ${diff.color}, ${shade(diff.color,20)})`,
             borderRadius:4, transition:'width .4s' }}/>
         </div>
-        <div style={{ fontSize:13, fontWeight:800, color:'#64748B', whiteSpace:'nowrap',
+        <div style={{ fontSize:13, fontWeight:600, color:'#64748B', whiteSpace:'nowrap',
           background:'#1E293B', border:'2px solid #334155', borderRadius:6, padding:'2px 8px' }}>
           {current}/{questions.length}
         </div>
-        <div style={{ fontSize:13, fontWeight:800, color:'#10B981', whiteSpace:'nowrap',
+        <div style={{ fontSize:13, fontWeight:600, color:'#10B981', whiteSpace:'nowrap',
           background:'#052e16', border:'2px solid #10B981', borderRadius:6, padding:'2px 8px' }}>
           ✓ {correct}
         </div>
@@ -1266,7 +1277,7 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
       <div className="rb-card" style={{ padding:20, margin:'16px 0' }}>
         <div style={{ fontSize:56, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:diff.color,
           textShadow:`0 0 20px ${diff.color}88` }}>{pct}%</div>
-        <div style={{ fontSize:14, color:'#94A3B8', fontWeight:800, marginBottom:12 }}>答對 {correct} / {total} 題</div>
+        <div style={{ fontSize:14, color:'#94A3B8', fontWeight:400, marginBottom:12 }}>答對 {correct} / {total} 題</div>
 
         <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:14 }}>
           {[0,1,2].map(i => (
@@ -1361,8 +1372,11 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
   const p = ensureDaily(prog);
 
   React.useEffect(() => {
-    sb.from('site_stats').select('value').eq('key','user_count').single()
-      .then(({ data }) => { if (data) setUserCount(data.value); });
+    sb.from('user_progress')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count, error }) => {
+        if (!error) setUserCount(count ?? 0);
+      });
   }, []);
   const lv = getLevel(p.xp);
   const daily = p.daily;
@@ -1382,22 +1396,22 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>
           ENGLISH QUEST
         </h1>
-        <p style={{ color:'#94A3B8', fontSize:12, fontWeight:700, letterSpacing:1 }}>
+        <p style={{ color:'#94A3B8', fontSize:12, fontWeight:400, letterSpacing:0.5 }}>
           SELECT YOUR WORLD — 每次題目都不一樣 🎲
         </p>
         {userCount !== null && (
           <div style={{ display:'inline-flex', alignItems:'center', gap:6, marginTop:6,
             background:'#1E293B', border:'2px solid #10B981', borderRadius:8,
-            padding:'4px 14px', fontSize:12, fontWeight:800, color:'#10B981',
+            padding:'4px 14px', fontSize:12, fontWeight:600, color:'#10B981',
             boxShadow:'0 0 12px rgba(16,185,129,0.3)' }}>
-            🟢 <span style={{ fontFamily:'Fredoka' }}>{userCount}</span> 位玩家上線
+            🟢 {userCount} 位玩家加入
           </div>
         )}
       </div>
 
       {/* Player Card */}
       <div className="rb-card" style={{ padding:'14px 16px', marginBottom:10 }}>
-        <div style={{ fontSize:10, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
+        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
           👤 PLAYER STATS
         </div>
         <XPBar xp={p.xp}/>
@@ -1410,8 +1424,8 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
             <div key={s.label} style={{ background:'#0F1A2E', border:`2px solid ${s.color}44`,
               borderRadius:8, padding:'8px 4px', textAlign:'center' }}>
               <div style={{ fontSize:16 }}>{s.icon}</div>
-              <div style={{ fontSize:20, fontWeight:800, color:s.color, fontFamily:'Fredoka, sans-serif' }}>{s.val}</div>
-              <div style={{ fontSize:10, color:'#64748B', fontWeight:700 }}>{s.label}</div>
+              <div style={{ fontSize:20, fontWeight:700, color:s.color, fontFamily:'Fredoka, sans-serif' }}>{s.val}</div>
+              <div style={{ fontSize:10, color:'#64748B', fontWeight:400 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -1431,8 +1445,8 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
           }}>
             <span style={{ fontSize:22 }}>{b.icon}</span>
             <div style={{ textAlign:'left' }}>
-              <div style={{ fontSize:13, fontWeight:800, color:'#F8FAFC' }}>{b.label}</div>
-              <div style={{ fontSize:11, fontWeight:700, color:b.color }}>{b.sub}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:'#F8FAFC' }}>{b.label}</div>
+              <div style={{ fontSize:11, fontWeight:400, color:b.color }}>{b.sub}</div>
             </div>
           </button>
         ))}
@@ -1440,7 +1454,7 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
 
       {/* Round selector */}
       <div className="rb-card" style={{ padding:'12px 16px', marginBottom:10, textAlign:'center' }}>
-        <div style={{ fontSize:10, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
+        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
           🎮 SELECT ROUND SIZE
         </div>
         <div style={{ display:'flex', justifyContent:'center', gap:8 }}>
@@ -1459,7 +1473,7 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
       </div>
 
       {/* World Map / Difficulty cards */}
-      <div style={{ fontSize:10, fontWeight:800, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
+      <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
         🗺️ SELECT WORLD
       </div>
       <div style={{ display:'grid', gap:8 }}>
@@ -1476,9 +1490,9 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:17, fontWeight:800, color:d.color, fontFamily:'Fredoka, sans-serif',
                   textShadow:`0 0 10px ${d.color}66` }}>{d.label}</div>
-                <div style={{ fontSize:11, color:'#94A3B8', fontWeight:600, marginTop:1 }}>{d.desc}</div>
+                <div style={{ fontSize:11, color:'#94A3B8', fontWeight:400, marginTop:1 }}>{d.desc}</div>
                 {sessions > 0 && (
-                  <div style={{ fontSize:10, color:d.color, fontWeight:800, marginTop:3 }}>
+                  <div style={{ fontSize:10, color:d.color, fontWeight:600, marginTop:3 }}>
                     ✓ CLEARED {sessions}×
                   </div>
                 )}
@@ -1492,7 +1506,7 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
         })}
       </div>
 
-      <div style={{ textAlign:'center', marginTop:16, fontSize:11, color:'#334155', fontWeight:700 }}>
+      <div style={{ textAlign:'center', marginTop:16, fontSize:11, color:'#475569', fontWeight:400 }}>
         👂 聆聽 · 🔤 拼音 · 📝 填空 · 🔀 排句 · 🎬 影片 — 五種題型混合出題
       </div>
     </div>
@@ -1538,7 +1552,7 @@ function LoginScreen() {
       <div style={{ textAlign:'center', marginBottom:20 }}>
         <h1 style={{ fontSize:32, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', margin:'0 0 4px',
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>ENGLISH QUEST</h1>
-        <div style={{ fontSize:12, color:'#64748B', fontWeight:800, letterSpacing:1 }}>
+        <div style={{ fontSize:12, color:'#64748B', fontWeight:400, letterSpacing:0.5 }}>
           登入後可跨裝置同步學習進度
         </div>
       </div>
