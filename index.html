@@ -210,6 +210,7 @@ const COSMETIC_ITEMS = {
     { id:'hair_red_f',   name:'紅色長髮', gender:'female', level:6, color:'#EF4444' },
     { id:'hair_white_m', name:'白色短髮', gender:'male',   level:8, color:'#E2E8F0' },
     { id:'hair_white_f', name:'白色長髮', gender:'female', level:8, color:'#E2E8F0' },
+    { id:'hair_bald',    name:'✨ 光頭',  gender:'all',    level:1, color:null, badge:'daily', icon:'🧑‍🦲' },
   ],
   shirt: [
     { id:'shirt_red',    name:'紅色上衣', gender:'all',    level:1, color:'#EF4444' },
@@ -256,6 +257,12 @@ function getDefaultHair(gender) {
 function ensureCosmetics(p) {
   if (p.cosmetics && p.cosmetics.gender !== undefined) return p;
   return { ...p, cosmetics: { gender: null, equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none' } } };
+}
+// 判斷某個外觀道具是否已解鎖（等級 + 可選的成就條件）
+function isCosItemUnlocked(item, prog) {
+  if (getLevel(prog.xp) < item.level) return false;
+  if (item.badge) return (prog.badges || []).includes(item.badge);
+  return true;
 }
 
 function loadProg() {
@@ -387,6 +394,7 @@ function Pip({ size=80, pose='idle', cosmetics=null }) {
   const pantsItem = findCosItem('pants',     pantsId);
   const accItem   = findCosItem('accessory', accId);
 
+  const isBald     = hairItem?.id === 'hair_bald';
   const hairColor  = hairItem?.color  || '#1C1C1C';
   const shirtColor = shirtItem?.color || '#EF4444';
   const pantsColor = pantsItem?.color || '#1E40AF';
@@ -423,15 +431,17 @@ function Pip({ size=80, pose='idle', cosmetics=null }) {
 
   return (
     <svg viewBox="0 0 100 130" width={size} height={size * 1.3}>
-      {/* Long hair back — female only */}
-      {isFemale && <>
+      {/* Long hair back — female only, skip if bald */}
+      {isFemale && !isBald && <>
         <rect x="13" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
         <rect x="75" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
       </>}
       {/* Head */}
       <rect x="22" y="4" width="56" height="52" rx="6" fill="#FFD700" stroke="#000" strokeWidth="3"/>
-      {/* Hair top */}
-      <rect x="22" y="4" width="56" height="15" rx="6" fill={hairColor} stroke="#000" strokeWidth="2.5"/>
+      {/* Hair top — skip if bald */}
+      {!isBald && <rect x="22" y="4" width="56" height="15" rx="6" fill={hairColor} stroke="#000" strokeWidth="2.5"/>}
+      {/* Bald shine highlight */}
+      {isBald && <ellipse cx="50" cy="16" rx="16" ry="8" fill="#fff" opacity="0.2"/>}
       {/* Eyes */}
       <rect x="30" y="22" width="14" height="14" rx="3" fill="#000"/>
       <rect x="56" y="22" width="14" height="14" rx="3" fill="#000"/>
@@ -916,28 +926,34 @@ function AvatarEditor({ prog, onSave, onClose }) {
             {(COSMETIC_ITEMS[tab] || [])
               .filter(item => item.gender === 'all' || item.gender === gender)
               .map(item => {
-                const unlocked = lv >= item.level;
+                const unlocked = isCosItemUnlocked(item, prog);
                 const equippedId = cos.equipped[tab] || (tab==='hair' ? getDefaultHair(gender) : '');
                 const selected = equippedId === item.id;
+                // 鎖定提示文字
+                const lockHint = !unlocked
+                  ? (item.badge ? `🏅 成就解鎖` : `🔒 Lv.${item.level}`)
+                  : null;
                 return (
                   <button key={item.id} onClick={() => unlocked && equip(tab, item.id)}
                     className={unlocked ? 'btn-press' : ''} style={{
                       padding:'10px 6px', borderRadius:10, textAlign:'center',
                       background: selected ? '#1E3A8A' : '#0F1A2E',
-                      border:`3px solid ${selected ? '#3B82F6' : '#334155'}`,
+                      border:`3px solid ${selected ? '#3B82F6' : (item.badge && !unlocked ? '#F59E0B44' : '#334155')}`,
                       opacity: unlocked ? 1 : 0.45,
                       cursor: unlocked ? 'pointer' : 'default',
                       boxShadow: selected ? '0 3px 0 #1E3A8A' : (unlocked ? '0 3px 0 #000' : 'none'),
                     }}>
-                    {item.color
-                      ? <div style={{ width:28, height:28, borderRadius:6, margin:'0 auto 5px',
-                          background: item.color, border:'2px solid rgba(0,0,0,0.5)' }}/>
-                      : <div style={{ fontSize:18, marginBottom:5 }}>🚫</div>
+                    {item.icon
+                      ? <div style={{ fontSize:22, marginBottom:5 }}>{item.icon}</div>
+                      : item.color
+                        ? <div style={{ width:28, height:28, borderRadius:6, margin:'0 auto 5px',
+                            background: item.color, border:'2px solid rgba(0,0,0,0.5)' }}/>
+                        : <div style={{ fontSize:18, marginBottom:5 }}>🚫</div>
                     }
                     <div style={{ fontSize:10, fontWeight:700,
                       color: selected ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569'),
                       lineHeight:1.2 }}>{item.name}</div>
-                    {!unlocked && <div style={{ fontSize:9, color:'#EF4444', fontWeight:800, marginTop:2 }}>🔒 Lv.{item.level}</div>}
+                    {lockHint && <div style={{ fontSize:9, color: item.badge ? '#F59E0B' : '#EF4444', fontWeight:800, marginTop:2 }}>{lockHint}</div>}
                     {selected && unlocked && <div style={{ fontSize:10, color:'#10B981', marginTop:2 }}>✓</div>}
                   </button>
                 );
