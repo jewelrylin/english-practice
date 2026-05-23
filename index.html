@@ -122,10 +122,19 @@ async function loadProgFromDB(userId) {
   return data?.progress || null;
 }
 async function saveProgToDB(userId, prog) {
+  // 檢查是否為新用戶（尚無記錄）
+  const { data: existing } = await sb.from('user_progress')
+    .select('user_id').eq('user_id', userId).maybeSingle();
+
   await sb.from('user_progress').upsert(
     { user_id: userId, progress: prog, updated_at: new Date().toISOString() },
     { onConflict: 'user_id' }
   );
+
+  // 新用戶第一次存檔 → 計數 +1
+  if (!existing) {
+    await sb.rpc('increment_user_count');
+  }
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -1507,9 +1516,9 @@ function LoginScreen() {
   const [userCount, setUserCount] = React.useState(null);
 
   React.useEffect(() => {
-    sb.from('user_progress')
-      .select('id', { count: 'exact', head: true })
-      .then(({ count, error }) => { if (!error) setUserCount(count ?? 0); });
+    sb.from('site_stats')
+      .select('value').eq('key', 'user_count').single()
+      .then(({ data }) => { if (data) setUserCount(data.value); });
   }, []);
 
   // inputStyle replaced by .rb-input class — kept as reference
