@@ -195,6 +195,69 @@ const TASK_POOL = [
   { id:'listen3', emoji:'👂', name:'聆聽練習',  desc:'答對 3 題聆聽題',    key:'listenOk', target:3,  reward:20 },
 ];
 
+// ── Cosmetics System ──────────────────────────────────────────────────────────
+const COSMETIC_ITEMS = {
+  hair: [
+    { id:'hair_black_m', name:'黑色短髮', gender:'male',   level:1, color:'#1C1C1C' },
+    { id:'hair_black_f', name:'黑色長髮', gender:'female', level:1, color:'#1C1C1C' },
+    { id:'hair_brown_m', name:'棕色短髮', gender:'male',   level:2, color:'#7C4A1E' },
+    { id:'hair_brown_f', name:'棕色長髮', gender:'female', level:2, color:'#7C4A1E' },
+    { id:'hair_blue_m',  name:'藍色短髮', gender:'male',   level:4, color:'#3B82F6' },
+    { id:'hair_blue_f',  name:'藍色長髮', gender:'female', level:4, color:'#3B82F6' },
+    { id:'hair_gold_m',  name:'金色短髮', gender:'male',   level:5, color:'#F59E0B' },
+    { id:'hair_gold_f',  name:'金色長髮', gender:'female', level:5, color:'#F59E0B' },
+    { id:'hair_red_m',   name:'紅色短髮', gender:'male',   level:6, color:'#EF4444' },
+    { id:'hair_red_f',   name:'紅色長髮', gender:'female', level:6, color:'#EF4444' },
+    { id:'hair_white_m', name:'白色短髮', gender:'male',   level:8, color:'#E2E8F0' },
+    { id:'hair_white_f', name:'白色長髮', gender:'female', level:8, color:'#E2E8F0' },
+  ],
+  shirt: [
+    { id:'shirt_red',    name:'紅色上衣', gender:'all',    level:1, color:'#EF4444' },
+    { id:'shirt_blue',   name:'藍色上衣', gender:'all',    level:1, color:'#3B82F6' },
+    { id:'shirt_green',  name:'綠色上衣', gender:'all',    level:2, color:'#10B981' },
+    { id:'shirt_purple', name:'紫色上衣', gender:'all',    level:3, color:'#8B5CF6' },
+    { id:'shirt_orange', name:'橘色上衣', gender:'all',    level:4, color:'#F97316' },
+    { id:'shirt_gold',   name:'金色上衣', gender:'all',    level:5, color:'#F59E0B' },
+    { id:'shirt_pink',   name:'粉色洋裝', gender:'female', level:2, color:'#EC4899' },
+    { id:'shirt_tux',    name:'帥氣西裝', gender:'male',   level:4, color:'#1E293B' },
+    { id:'shirt_cyan',   name:'青色上衣', gender:'all',    level:6, color:'#06B6D4' },
+    { id:'shirt_legend', name:'傳說盔甲', gender:'all',    level:9, color:'#FFD700' },
+  ],
+  pants: [
+    { id:'pants_blue',   name:'藍色褲子', gender:'all',    level:1, color:'#1E40AF' },
+    { id:'pants_black',  name:'黑色褲子', gender:'all',    level:1, color:'#0F172A' },
+    { id:'pants_red',    name:'紅色褲子', gender:'all',    level:3, color:'#DC2626' },
+    { id:'pants_green',  name:'綠色褲子', gender:'all',    level:4, color:'#059669' },
+    { id:'pants_pink',   name:'粉色裙子', gender:'female', level:2, color:'#F472B6' },
+    { id:'pants_purple', name:'紫色褲子', gender:'all',    level:5, color:'#7C3AED' },
+    { id:'pants_gold',   name:'金色褲子', gender:'all',    level:7, color:'#D97706' },
+  ],
+  accessory: [
+    { id:'acc_none',    name:'無配件',  gender:'all',    level:1, color:null },
+    { id:'acc_glasses', name:'眼鏡',    gender:'all',    level:2, color:'#475569' },
+    { id:'acc_hat',     name:'棒球帽',  gender:'male',   level:3, color:'#334155' },
+    { id:'acc_bow',     name:'蝴蝶結',  gender:'female', level:3, color:'#F472B6' },
+    { id:'acc_star',    name:'星星貼',  gender:'all',    level:4, color:'#F59E0B' },
+    { id:'acc_ribbon',  name:'緞帶',    gender:'female', level:5, color:'#EC4899' },
+    { id:'acc_sword',   name:'小配劍',  gender:'male',   level:6, color:'#94A3B8' },
+    { id:'acc_crown',   name:'皇冠',    gender:'all',    level:8, color:'#FFD700' },
+  ],
+};
+const DEFAULT_COSMETICS = {
+  gender: null,
+  equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none' }
+};
+function findCosItem(cat, id) {
+  return (COSMETIC_ITEMS[cat] || []).find(x => x.id === id) || null;
+}
+function getDefaultHair(gender) {
+  return gender === 'female' ? 'hair_black_f' : 'hair_black_m';
+}
+function ensureCosmetics(p) {
+  if (p.cosmetics && p.cosmetics.gender !== undefined) return p;
+  return { ...p, cosmetics: { gender: null, equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none' } } };
+}
+
 function loadProg() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -306,38 +369,93 @@ function processSession({ prog, results, difficulty, questions }) {
 }
 
 // ── Roblox Character ──────────────────────────────────────────────────────────
-function Pip({ size=80, pose='idle' }) {
+function Pip({ size=80, pose='idle', cosmetics=null }) {
+  const cos = cosmetics
+    ? { gender: cosmetics.gender, equipped: { ...DEFAULT_COSMETICS.equipped, ...(cosmetics.equipped||{}) } }
+    : DEFAULT_COSMETICS;
+  const gender = cos.gender || 'male';
+  const eq = cos.equipped;
+  const isFemale = gender === 'female';
+
+  const hairId  = eq.hair      || getDefaultHair(gender);
+  const shirtId = eq.shirt     || 'shirt_red';
+  const pantsId = eq.pants     || 'pants_blue';
+  const accId   = eq.accessory || 'acc_none';
+
+  const hairItem  = findCosItem('hair',      hairId);
+  const shirtItem = findCosItem('shirt',     shirtId);
+  const pantsItem = findCosItem('pants',     pantsId);
+  const accItem   = findCosItem('accessory', accId);
+
+  const hairColor  = hairItem?.color  || '#1C1C1C';
+  const shirtColor = shirtItem?.color || '#EF4444';
+  const pantsColor = pantsItem?.color || '#1E40AF';
+
   const armL = (pose==='wave'||pose==='cheer')
-    ? <rect x="2" y="46" width="16" height="12" rx="3" fill="#EF4444" stroke="#000" strokeWidth="2" transform="rotate(-35 10 52)"/>
-    : <rect x="2" y="58" width="16" height="12" rx="3" fill="#EF4444" stroke="#000" strokeWidth="2"/>;
+    ? <rect x="2" y="46" width="16" height="12" rx="3" fill={shirtColor} stroke="#000" strokeWidth="2" transform="rotate(-35 10 52)"/>
+    : <rect x="2" y="58" width="16" height="12" rx="3" fill={shirtColor} stroke="#000" strokeWidth="2"/>;
   const armR = pose==='cheer'
-    ? <rect x="82" y="46" width="16" height="12" rx="3" fill="#EF4444" stroke="#000" strokeWidth="2" transform="rotate(35 90 52)"/>
-    : <rect x="82" y="58" width="16" height="12" rx="3" fill="#EF4444" stroke="#000" strokeWidth="2"/>;
+    ? <rect x="82" y="46" width="16" height="12" rx="3" fill={shirtColor} stroke="#000" strokeWidth="2" transform="rotate(35 90 52)"/>
+    : <rect x="82" y="58" width="16" height="12" rx="3" fill={shirtColor} stroke="#000" strokeWidth="2"/>;
   const mouth = pose==='cheer' || pose==='sing'
     ? <path d="M40 60 Q50 70 60 60" stroke="#000" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     : <path d="M40 58 Q50 65 60 58" stroke="#000" strokeWidth="2.5" fill="none" strokeLinecap="round"/>;
+
+  // Accessory
+  let accEl = null;
+  if (accItem && accItem.id !== 'acc_none') {
+    const ac = accItem.color;
+    if (accItem.id === 'acc_glasses')
+      accEl = <g><rect x="28" y="24" width="15" height="11" rx="4" fill="none" stroke={ac} strokeWidth="2.5"/><rect x="57" y="24" width="15" height="11" rx="4" fill="none" stroke={ac} strokeWidth="2.5"/><line x1="43" y1="29" x2="57" y2="29" stroke={ac} strokeWidth="2"/></g>;
+    else if (accItem.id === 'acc_hat')
+      accEl = <g><rect x="28" y="-1" width="44" height="10" rx="3" fill={ac} stroke="#000" strokeWidth="2"/><rect x="18" y="8" width="64" height="5" rx="2" fill={ac} stroke="#000" strokeWidth="1.5"/></g>;
+    else if (accItem.id === 'acc_bow')
+      accEl = <g transform="translate(50,2)"><path d="M-14 0 Q-8-9 0-4 Q8-9 14 0 Q8 9 0 4 Q-8 9-14 0" fill={ac} stroke="#000" strokeWidth="1.5"/><circle cx="0" cy="0" r="3.5" fill="#fff" stroke="#000" strokeWidth="1"/></g>;
+    else if (accItem.id === 'acc_star')
+      accEl = <text x="68" y="15" fontSize="17" fill={ac}>⭐</text>;
+    else if (accItem.id === 'acc_ribbon')
+      accEl = <g><path d="M42 2 L50 10 L58 2 L54 8 L50 13 L46 8 Z" fill={ac} stroke="#000" strokeWidth="1.5"/></g>;
+    else if (accItem.id === 'acc_sword')
+      accEl = <g transform="translate(80,44)"><rect x="0" y="0" width="5" height="28" rx="1" fill="#94A3B8" stroke="#000" strokeWidth="1.5"/><rect x="-3" y="7" width="11" height="4" rx="1" fill="#F59E0B" stroke="#000" strokeWidth="1"/><rect x="0" y="24" width="5" height="6" rx="1" fill="#7C4A1E" stroke="#000" strokeWidth="1"/></g>;
+    else if (accItem.id === 'acc_crown')
+      accEl = <g><path d="M24 12 L30 2 L42 9 L50 1 L58 9 L70 2 L76 12 L76 19 L24 19 Z" fill={ac} stroke="#000" strokeWidth="2"/><circle cx="30" cy="10" r="3" fill="#fff"/><circle cx="50" cy="5" r="3" fill="#fff"/><circle cx="70" cy="10" r="3" fill="#fff"/></g>;
+  }
+
   return (
     <svg viewBox="0 0 100 130" width={size} height={size * 1.3}>
+      {/* Long hair back — female only */}
+      {isFemale && <>
+        <rect x="13" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
+        <rect x="75" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
+      </>}
       {/* Head */}
       <rect x="22" y="4" width="56" height="52" rx="6" fill="#FFD700" stroke="#000" strokeWidth="3"/>
+      {/* Hair top */}
+      <rect x="22" y="4" width="56" height="15" rx="6" fill={hairColor} stroke="#000" strokeWidth="2.5"/>
       {/* Eyes */}
-      <rect x="30" y="18" width="14" height="14" rx="3" fill="#000"/>
-      <rect x="56" y="18" width="14" height="14" rx="3" fill="#000"/>
-      <rect x="32" y="20" width="6" height="6" rx="1" fill="#fff"/>
-      <rect x="58" y="20" width="6" height="6" rx="1" fill="#fff"/>
+      <rect x="30" y="22" width="14" height="14" rx="3" fill="#000"/>
+      <rect x="56" y="22" width="14" height="14" rx="3" fill="#000"/>
+      <rect x="32" y="24" width="6" height="6" rx="1" fill="#fff"/>
+      <rect x="58" y="24" width="6" height="6" rx="1" fill="#fff"/>
+      {/* Female eyelashes */}
+      {isFemale && <>
+        <path d="M30 22 L27 17 M37 21 L37 16 M44 22 L47 17" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M56 22 L53 17 M63 21 L63 16 M70 22 L73 17" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+      </>}
       {/* Blush */}
       <ellipse cx="28" cy="44" rx="7" ry="4" fill="#FF6B8A" opacity="0.5"/>
       <ellipse cx="72" cy="44" rx="7" ry="4" fill="#FF6B8A" opacity="0.5"/>
       {mouth}
+      {/* Accessories */}
+      {accEl}
       {/* Body */}
-      <rect x="18" y="56" width="64" height="44" rx="6" fill="#EF4444" stroke="#000" strokeWidth="3"/>
-      {/* Logo on body */}
+      <rect x="18" y="56" width="64" height="44" rx="6" fill={shirtColor} stroke="#000" strokeWidth="3"/>
       <rect x="36" y="68" width="28" height="18" rx="4" fill="#fff" opacity="0.15"/>
       {/* Arms */}
       {armL}{armR}
       {/* Legs */}
-      <rect x="22" y="100" width="24" height="26" rx="4" fill="#1E40AF" stroke="#000" strokeWidth="3"/>
-      <rect x="54" y="100" width="24" height="26" rx="4" fill="#1E40AF" stroke="#000" strokeWidth="3"/>
+      <rect x="22" y="100" width="24" height="26" rx="4" fill={pantsColor} stroke="#000" strokeWidth="3"/>
+      <rect x="54" y="100" width="24" height="26" rx="4" fill={pantsColor} stroke="#000" strokeWidth="3"/>
       {/* Shoes */}
       <rect x="18" y="120" width="30" height="10" rx="3" fill="#000"/>
       <rect x="52" y="120" width="30" height="10" rx="3" fill="#000"/>
@@ -708,11 +826,145 @@ function BadgesModal({ prog, onClose }) {
   );
 }
 
+// ── Avatar Editor Modal ───────────────────────────────────────────────────────
+function AvatarEditor({ prog, onSave, onClose }) {
+  const cos0 = ensureCosmetics(prog).cosmetics;
+  const [cos, setCos] = React.useState(() => ({
+    gender: cos0.gender,
+    equipped: { ...DEFAULT_COSMETICS.equipped, ...(cos0.equipped || {}) }
+  }));
+  const [tab, setTab] = React.useState(cos.gender ? 'hair' : 'gender');
+  const lv = getLevel(prog.xp);
+  const gender = cos.gender || 'male';
+
+  const equip = (cat, id) => setCos(c => ({ ...c, equipped: { ...c.equipped, [cat]: id } }));
+
+  const setGender = (g) => {
+    const hairId = cos.equipped.hair;
+    const hairItem = findCosItem('hair', hairId);
+    const newHair = (!hairItem || hairItem.gender === 'all' || hairItem.gender === g)
+      ? hairId : getDefaultHair(g);
+    setCos(c => ({ ...c, gender: g, equipped: { ...c.equipped, hair: newHair } }));
+    setTab('hair');
+  };
+
+  const itemTabs = cos.gender
+    ? [['hair','💇 髮型'],['shirt','👕 上衣'],['pants','👖 下裝'],['accessory','✨ 配件']]
+    : [];
+  const allTabs = [['gender','👤 性別'], ...itemTabs];
+
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-box slide-up" style={{ maxWidth:420 }}>
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+          <div style={{ fontSize:19, fontWeight:800, color:'#F8FAFC' }}>🎭 角色設定</div>
+          <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
+            borderRadius:8, width:36, height:36, fontSize:16, cursor:'pointer', color:'#94A3B8',
+            boxShadow:'0 3px 0 #000' }}>✕</button>
+        </div>
+
+        {/* Avatar preview */}
+        <div style={{ textAlign:'center', marginBottom:12 }}>
+          <div className="bobble" style={{ display:'inline-block' }}>
+            <Pip size={80} pose="wave" cosmetics={cos}/>
+          </div>
+          <div style={{ fontSize:11, color:'#475569', marginTop:2, fontWeight:400 }}>
+            Lv.{lv} — {LEVEL_TITLES[lv-1]}
+          </div>
+          {!cos.gender && (
+            <div style={{ fontSize:12, color:'#F59E0B', fontWeight:700, marginTop:4 }}>
+              ⬇️ 請先選擇性別開始設定
+            </div>
+          )}
+        </div>
+
+        {/* Category tabs */}
+        <div style={{ display:'flex', gap:4, marginBottom:14, overflowX:'auto', paddingBottom:2 }}>
+          {allTabs.map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              padding:'6px 10px', borderRadius:8, fontSize:11, fontWeight:800, whiteSpace:'nowrap',
+              background: tab===t ? '#3B82F6' : '#0F1A2E',
+              border:`2px solid ${tab===t ? '#3B82F6' : '#334155'}`,
+              color: tab===t ? '#fff' : '#64748B', cursor:'pointer',
+              boxShadow: tab===t ? '0 3px 0 #1E3A8A' : '0 2px 0 #000',
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {/* Gender selection */}
+        {tab === 'gender' && (
+          <div style={{ display:'flex', gap:12 }}>
+            {[['male','👦','男生','#3B82F6'],['female','👧','女生','#EC4899']].map(([g,icon,label,clr]) => (
+              <button key={g} onClick={() => setGender(g)} className="btn-press" style={{
+                flex:1, padding:'20px 12px', borderRadius:12, textAlign:'center', cursor:'pointer',
+                background: cos.gender===g ? `${clr}22` : '#0F1A2E',
+                border:`3px solid ${cos.gender===g ? clr : '#334155'}`,
+                boxShadow:'0 5px 0 #000',
+              }}>
+                <div style={{ fontSize:44 }}>{icon}</div>
+                <div style={{ fontSize:15, fontWeight:800, color: cos.gender===g ? clr : '#94A3B8', marginTop:8 }}>{label}</div>
+                {cos.gender===g && <div style={{ fontSize:11, color:clr, marginTop:2 }}>✓ 已選擇</div>}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Item grid */}
+        {tab !== 'gender' && (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, maxHeight:260, overflowY:'auto' }}>
+            {(COSMETIC_ITEMS[tab] || [])
+              .filter(item => item.gender === 'all' || item.gender === gender)
+              .map(item => {
+                const unlocked = lv >= item.level;
+                const equippedId = cos.equipped[tab] || (tab==='hair' ? getDefaultHair(gender) : '');
+                const selected = equippedId === item.id;
+                return (
+                  <button key={item.id} onClick={() => unlocked && equip(tab, item.id)}
+                    className={unlocked ? 'btn-press' : ''} style={{
+                      padding:'10px 6px', borderRadius:10, textAlign:'center',
+                      background: selected ? '#1E3A8A' : '#0F1A2E',
+                      border:`3px solid ${selected ? '#3B82F6' : '#334155'}`,
+                      opacity: unlocked ? 1 : 0.45,
+                      cursor: unlocked ? 'pointer' : 'default',
+                      boxShadow: selected ? '0 3px 0 #1E3A8A' : (unlocked ? '0 3px 0 #000' : 'none'),
+                    }}>
+                    {item.color
+                      ? <div style={{ width:28, height:28, borderRadius:6, margin:'0 auto 5px',
+                          background: item.color, border:'2px solid rgba(0,0,0,0.5)' }}/>
+                      : <div style={{ fontSize:18, marginBottom:5 }}>🚫</div>
+                    }
+                    <div style={{ fontSize:10, fontWeight:700,
+                      color: selected ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569'),
+                      lineHeight:1.2 }}>{item.name}</div>
+                    {!unlocked && <div style={{ fontSize:9, color:'#EF4444', fontWeight:800, marginTop:2 }}>🔒 Lv.{item.level}</div>}
+                    {selected && unlocked && <div style={{ fontSize:10, color:'#10B981', marginTop:2 }}>✓</div>}
+                  </button>
+                );
+              })}
+          </div>
+        )}
+
+        {/* Level unlock hint */}
+        <div style={{ marginTop:10, fontSize:11, color:'#475569', fontWeight:400, textAlign:'center' }}>
+          🔒 升級可解鎖更多外觀 · 目前 Lv.{lv}
+        </div>
+
+        {/* Save */}
+        <div style={{ marginTop:12 }}>
+          <BigButton onClick={() => onSave(cos)} color='#10B981' full>💾 儲存形象</BigButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Question components ───────────────────────────────────────────────────────
 function ListenQuestion({ q, onAnswer }) {
   const [choices] = React.useState(() => shuffle(q.choices.map((c,i) => ({ label:c, origIdx:i }))));
-  const [picked, setPicked] = React.useState(null);
-  const [playing, setPlaying] = React.useState(false);
+  const [selected,  setSelected]  = React.useState(null);  // highlighted, not yet submitted
+  const [confirmed, setConfirmed] = React.useState(false); // answer submitted
+  const [playing,   setPlaying]   = React.useState(false);
 
   const play = () => {
     setPlaying(true);
@@ -721,10 +973,11 @@ function ListenQuestion({ q, onAnswer }) {
   };
   React.useEffect(() => { setTimeout(play, 400); }, []);
 
-  const submit = (idx) => {
-    if (picked !== null) return;
-    const isCorrect = choices[idx].origIdx === q.correct;
-    setPicked(idx); onAnswer(isCorrect, choices[idx].label, q.choices[q.correct]);
+  const confirm = () => {
+    if (selected === null || confirmed) return;
+    const isCorrect = choices[selected].origIdx === q.correct;
+    setConfirmed(true);
+    onAnswer(isCorrect, choices[selected].label, q.choices[q.correct]);
   };
 
   return (
@@ -749,34 +1002,43 @@ function ListenQuestion({ q, onAnswer }) {
       </div>
       <div style={{ display:'grid', gap:10 }}>
         {choices.map((c, i) => {
-          const isCorrect = c.origIdx === q.correct;
-          const isPicked  = picked === i;
-          let bg='#0F1A2E', border='3px solid #334155', clr='#F8FAFC';
-          if (picked !== null) {
-            if (isCorrect) { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; }
-            else if (isPicked) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; }
-            else { clr='#475569'; }
+          const isCorrect  = c.origIdx === q.correct;
+          const isSelected = selected === i;
+          let bg='#0F1A2E', border='3px solid #334155', clr='#F8FAFC', sh='0 3px 0 #000';
+          if (!confirmed && isSelected) {
+            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 3px 0 #1E3A8A';
+          } else if (confirmed) {
+            if (isCorrect)       { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
+            else if (isSelected) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
+            else                 { clr='#475569'; sh='none'; }
           }
           return (
-            <button key={i} onClick={() => submit(i)} disabled={picked!==null} style={{
+            <button key={i} onClick={() => !confirmed && setSelected(i)} disabled={confirmed} style={{
               background:bg, border, color:clr, borderRadius:10, padding:'14px 18px',
-              fontSize:14, fontWeight:700, textAlign:'left', cursor:picked!==null?'default':'pointer',
-              boxShadow: picked===null ? '0 3px 0 #000' : 'none', transition:'all .2s',
+              fontSize:14, fontWeight:700, textAlign:'left', cursor:confirmed?'default':'pointer',
+              boxShadow:sh, transition:'all .2s',
               display:'flex', alignItems:'center', gap:10, fontFamily:'Fredoka, sans-serif',
             }}>
-              <span style={{ fontSize:15, fontWeight:800, color:'#475569', minWidth:22,
+              <span style={{ fontSize:15, fontWeight:800,
+                color: !confirmed && isSelected ? '#93C5FD' : '#475569', minWidth:22,
                 background:'#1E293B', borderRadius:4, padding:'1px 5px' }}>{String.fromCharCode(65+i)}</span>
               <span>{c.label}</span>
-              {picked!==null && isCorrect && <span style={{ marginLeft:'auto', color:'#10B981', fontSize:20 }}>✓</span>}
-              {picked!==null && isPicked && !isCorrect && <span style={{ marginLeft:'auto', color:'#EF4444', fontSize:20 }}>✕</span>}
+              {confirmed && isCorrect  && <span style={{ marginLeft:'auto', color:'#10B981', fontSize:20 }}>✓</span>}
+              {confirmed && isSelected && !isCorrect && <span style={{ marginLeft:'auto', color:'#EF4444', fontSize:20 }}>✕</span>}
             </button>
           );
         })}
       </div>
-      {picked !== null && (
+      {/* Confirm button */}
+      {selected !== null && !confirmed && (
+        <div style={{ marginTop:12 }}>
+          <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
+        </div>
+      )}
+      {confirmed && (
         <div style={{ marginTop:12, padding:'10px 14px', borderRadius:10,
-          background: choices[picked].origIdx===q.correct ? '#052e16' : '#1c0f00',
-          border:`2px solid ${choices[picked].origIdx===q.correct ? '#10B981' : '#F59E0B'}`,
+          background: choices[selected].origIdx===q.correct ? '#052e16' : '#1c0f00',
+          border:`2px solid ${choices[selected].origIdx===q.correct ? '#10B981' : '#F59E0B'}`,
           fontSize:13, color:'#F8FAFC', fontWeight:700 }}>
           💡 <b style={{color:'#F59E0B'}}>{q.text}</b> · {q.cn}
         </div>
@@ -786,14 +1048,14 @@ function ListenQuestion({ q, onAnswer }) {
 }
 
 function PhonicsQuestion({ q, onAnswer }) {
-  const [picked, setPicked]   = React.useState(null);
-  const [answered, setAnswered] = React.useState(false);
+  const [picked,    setPicked]   = React.useState(null);   // selected letter
+  const [answered,  setAnswered] = React.useState(false);  // confirmed
   const [choices] = React.useState(() => shuffle(q.choices));
 
-  const submit = (letter) => {
-    if (answered) return;
-    setPicked(letter); setAnswered(true);
-    onAnswer(letter===q.answer, letter, q.answer);
+  const confirm = () => {
+    if (!picked || answered) return;
+    setAnswered(true);
+    onAnswer(picked===q.answer, picked, q.answer);
   };
 
   return (
@@ -840,13 +1102,15 @@ function PhonicsQuestion({ q, onAnswer }) {
         {choices.map(letter => {
           const isCorrect=letter===q.answer, isPicked=letter===picked;
           let bg='#1E293B', clr='#F8FAFC', bdr='3px solid #334155', sh='0 4px 0 #000';
-          if (answered) {
+          if (!answered && isPicked) {
+            bg='#1E3A8A'; clr='#93C5FD'; bdr='3px solid #3B82F6'; sh='0 4px 0 #1E3A8A';
+          } else if (answered) {
             if (isCorrect) { bg='#10B981'; clr='#fff'; bdr='3px solid #000'; sh='none'; }
             else if (isPicked) { bg='#EF4444'; clr='#fff'; bdr='3px solid #000'; sh='none'; }
             else { bg='#0F1A2E'; clr='#334155'; bdr='3px solid #1E293B'; sh='none'; }
           }
           return (
-            <button key={letter} onClick={() => submit(letter)} disabled={answered}
+            <button key={letter} onClick={() => !answered && setPicked(letter)} disabled={answered}
               className={!answered?'btn-press':''} style={{
                 width:64, height:64, borderRadius:10, background:bg, border:bdr,
                 fontSize:28, fontWeight:800, color:clr, cursor:answered?'default':'pointer',
@@ -857,6 +1121,12 @@ function PhonicsQuestion({ q, onAnswer }) {
           );
         })}
       </div>
+      {/* Confirm button */}
+      {picked && !answered && (
+        <div style={{ marginTop:14 }}>
+          <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
+        </div>
+      )}
       {answered && (
         <div style={{ marginTop:16, padding:'10px 14px', borderRadius:10,
           background: picked===q.answer ? '#052e16' : '#1c0f00',
@@ -873,12 +1143,14 @@ function PhonicsQuestion({ q, onAnswer }) {
 
 function FillQuestion({ q, onAnswer }) {
   const [choices] = React.useState(() => shuffle(q.choices.map((c,i)=>({label:c,origIdx:i}))));
-  const [picked, setPicked] = React.useState(null);
+  const [selected,  setSelected]  = React.useState(null);  // highlighted index
+  const [confirmed, setConfirmed] = React.useState(false); // submitted
 
-  const submit = (idx) => {
-    if (picked !== null) return;
-    const label = choices[idx].label;
-    setPicked(idx); onAnswer(label===q.answer, label, q.answer);
+  const confirm = () => {
+    if (selected === null || confirmed) return;
+    const label = choices[selected].label;
+    setConfirmed(true);
+    onAnswer(label===q.answer, label, q.answer);
   };
   const parts = q.sentence.split('___');
 
@@ -893,42 +1165,54 @@ function FillQuestion({ q, onAnswer }) {
           <span style={{
             display:'inline-block', minWidth:80, padding:'2px 12px', margin:'0 4px',
             borderRadius:8, verticalAlign:'middle',
-            background: picked===null ? 'rgba(139,92,246,0.15)'
-              : (choices[picked].label===q.answer ? '#052e16' : '#2d0f0f'),
-            border:`3px ${picked===null?'dashed':'solid'} ${picked===null?'#8B5CF6'
-              :(choices[picked].label===q.answer?'#10B981':'#EF4444')}`,
-            color: picked===null ? '#8B5CF6'
-              : (choices[picked].label===q.answer ? '#10B981' : '#EF4444'),
+            background: selected===null ? 'rgba(139,92,246,0.15)'
+              : (!confirmed ? '#1E3A8A'
+                : (choices[selected].label===q.answer ? '#052e16' : '#2d0f0f')),
+            border:`3px ${selected===null?'dashed':'solid'} ${
+              selected===null ? '#8B5CF6'
+              : (!confirmed ? '#3B82F6'
+                : (choices[selected].label===q.answer ? '#10B981' : '#EF4444'))}`,
+            color: selected===null ? '#8B5CF6'
+              : (!confirmed ? '#93C5FD'
+                : (choices[selected].label===q.answer ? '#10B981' : '#EF4444')),
             fontWeight:800, fontSize:17, textAlign:'center',
-          }}>{picked===null ? '___' : choices[picked].label}</span>
+          }}>{selected===null ? '___' : choices[selected].label}</span>
           {parts[1]}
         </div>
         {q.hint && <div style={{ fontSize:12, color:'#94A3B8', marginTop:4, fontWeight:400 }}>💡 提示：{q.hint}</div>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {choices.map((c, i) => {
-          const isCorrect=c.label===q.answer, isPicked=picked===i;
+          const isCorrect=c.label===q.answer, isSelected=selected===i;
           let bg='#1E293B', border='3px solid #334155', clr='#F8FAFC', sh='0 4px 0 #000';
-          if (picked!==null) {
-            if (isCorrect) { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
-            else if (isPicked) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
-            else { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
+          if (!confirmed && isSelected) {
+            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 4px 0 #1E3A8A';
+          } else if (confirmed) {
+            if (isCorrect)        { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
+            else if (isSelected)  { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
+            else                  { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
           }
           return (
-            <button key={i} onClick={() => submit(i)} disabled={picked!==null}
-              className={picked===null?'btn-press':''} style={{
+            <button key={i} onClick={() => !confirmed && setSelected(i)} disabled={confirmed}
+              className={!confirmed?'btn-press':''} style={{
                 background:bg, border, color:clr, borderRadius:10, padding:'16px 12px',
-                fontSize:15, fontWeight:800, cursor:picked!==null?'default':'pointer',
+                fontSize:15, fontWeight:800, cursor:confirmed?'default':'pointer',
                 boxShadow:sh, transition:'all .2s', fontFamily:'Fredoka, sans-serif',
               }}>
               {c.label}
-              {picked!==null && isCorrect && <span style={{marginLeft:6, fontSize:16}}>✓</span>}
-              {picked!==null && isPicked && !isCorrect && <span style={{marginLeft:6, fontSize:16}}>✕</span>}
+              {confirmed && isCorrect  && <span style={{marginLeft:6, fontSize:16}}>✓</span>}
+              {confirmed && isSelected && !isCorrect && <span style={{marginLeft:6, fontSize:16}}>✕</span>}
             </button>
           );
         })}
       </div>
-      {picked!==null && choices[picked].label!==q.answer && (
+      {/* Confirm button */}
+      {selected !== null && !confirmed && (
+        <div style={{ marginTop:12 }}>
+          <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
+        </div>
+      )}
+      {confirmed && choices[selected].label!==q.answer && (
         <div style={{ marginTop:12, padding:'10px 14px', borderRadius:10,
           background:'#1c0f00', border:'3px solid #F59E0B',
           fontSize:13, fontWeight:700, color:'#F8FAFC' }}>
@@ -1010,14 +1294,15 @@ function OrderQuestion({ q, onAnswer }) {
 // ── Quiz screen ───────────────────────────────────────────────────────────────
 // ── Video Question ────────────────────────────────────────────────────────────
 function VideoQuestion({ q, onAnswer }) {
-  const [played,  setPlayed]  = React.useState(false);
-  const [picked,  setPicked]  = React.useState(null);
+  const [played,   setPlayed]   = React.useState(false);
+  const [selected, setSelected] = React.useState(null);  // highlighted
+  const [picked,   setPicked]   = React.useState(null);  // confirmed
   const thumb = `https://img.youtube.com/vi/${q.videoId}/mqdefault.jpg`;
 
-  const pick = (i) => {
-    if (picked !== null) return;
-    setPicked(i);
-    onAnswer(i === q.correct);
+  const confirm = () => {
+    if (selected === null || picked !== null) return;
+    setPicked(selected);
+    onAnswer(selected === q.correct);
   };
 
   return (
@@ -1059,29 +1344,39 @@ function VideoQuestion({ q, onAnswer }) {
       {/* Choices */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {q.choices.map((c, i) => {
-          const isRight = picked !== null && i === q.correct;
-          const isWrong = picked === i && i !== q.correct;
+          const isRight    = picked !== null && i === q.correct;
+          const isWrong    = picked === i && i !== q.correct;
+          const isSelected = selected === i && picked === null;
           let bg='#1E293B', border='3px solid #334155', clr='#F8FAFC', sh='0 4px 0 #000';
-          if (picked !== null) {
-            if (isRight) { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
-            else if (isWrong) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
-            else { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
+          if (isSelected) {
+            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 4px 0 #1E3A8A';
+          } else if (picked !== null) {
+            if (isRight)       { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
+            else if (isWrong)  { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
+            else               { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
           }
           return (
-            <button key={i} onClick={() => pick(i)} className={picked===null?'btn-press':''} style={{
-              padding:'12px 10px', borderRadius:10, fontSize:14, fontWeight:800,
-              cursor: picked===null ? 'pointer' : 'default',
-              background:bg, border, color:clr, boxShadow:sh,
-              fontFamily:'Fredoka, sans-serif', transition:'all .2s',
-            }}>{c}</button>
+            <button key={i} onClick={() => picked === null && setSelected(i)}
+              className={picked===null?'btn-press':''} style={{
+                padding:'12px 10px', borderRadius:10, fontSize:14, fontWeight:800,
+                cursor: picked===null ? 'pointer' : 'default',
+                background:bg, border, color:clr, boxShadow:sh,
+                fontFamily:'Fredoka, sans-serif', transition:'all .2s',
+              }}>{c}</button>
           );
         })}
       </div>
+      {/* Confirm button */}
+      {selected !== null && picked === null && (
+        <div style={{ marginTop:12 }}>
+          <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
+        </div>
+      )}
     </div>
   );
 }
 
-function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
+function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
   const diff = QB[difficulty];
   const [current,    setCurrent]    = React.useState(0);
   const [results,    setResults]    = React.useState([]);
@@ -1135,7 +1430,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit }) {
           flexShrink:0, boxShadow:'0 4px 0 #7F1D1D',
         }}>✕</button>
         {/* Pip 人物 */}
-        <div style={{ flexShrink:0 }}><Pip size={36} pose="idle"/></div>
+        <div style={{ flexShrink:0 }}><Pip size={36} pose="idle" cosmetics={cosmetics}/></div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:13, fontWeight:700, color:diff.color, letterSpacing:0.5,
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -1274,7 +1569,7 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
       )}
 
       <div className="bobble" style={{ display:'inline-block', marginBottom:4 }}>
-        <Pip size={80} pose={stars>=2?'cheer':'wave'}/>
+        <Pip size={80} pose={stars>=2?'cheer':'wave'} cosmetics={newProg.cosmetics}/>
       </div>
       <div style={{ fontSize:36, margin:'6px 0' }}>{['😢','😊','😄','🌟'][stars]}</div>
       <h2 style={{ fontSize:22, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', marginBottom:4,
@@ -1375,7 +1670,7 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
 }
 
 // ── Home screen ───────────────────────────────────────────────────────────────
-function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
+function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) {
   const [count, setCount] = React.useState(10);
   const p = ensureDaily(prog);
   const lv = getLevel(p.xp);
@@ -1388,11 +1683,15 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
 
       {/* Game Header */}
       <div style={{ textAlign:'center', marginBottom:16 }}>
-        <div className="bobble" style={{ display:'inline-block' }}>
-          <Pip size={80} pose="cheer"/>
+        <div className="bobble" style={{ display:'inline-block', position:'relative', cursor:'pointer' }}
+          onClick={onAvatarEdit} title="點擊編輯角色">
+          <Pip size={80} pose="cheer" cosmetics={prog.cosmetics}/>
+          <div style={{ position:'absolute', bottom:-2, right:-4, background:'#3B82F6', border:'2px solid #000',
+            borderRadius:6, padding:'2px 6px', fontSize:9, fontWeight:800, color:'#fff',
+            boxShadow:'0 2px 0 #1E3A8A' }}>✏️ 編輯</div>
         </div>
         <h1 style={{ fontSize:30, fontWeight:800, fontFamily:'Fredoka, sans-serif',
-          color:'#F8FAFC', margin:'4px 0 2px',
+          color:'#F8FAFC', margin:'10px 0 2px',
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>
           ENGLISH QUEST
         </h1>
@@ -1632,11 +1931,12 @@ function App() {
   const [questions,    setQuestions]    = React.useState([]);
   const [results,      setResults]      = React.useState([]);
   const [sessionResult,setSessionResult]= React.useState(null);
-  const [prog,         setProg]         = React.useState(() => ensureDaily(loadProg()));
-  const [showTasks,    setShowTasks]    = React.useState(false);
-  const [showBadges,   setShowBadges]   = React.useState(false);
-  const [user,         setUser]         = React.useState(null);
-  const [authLoading,  setAuthLoading]  = React.useState(true);
+  const [prog,            setProg]            = React.useState(() => ensureCosmetics(ensureDaily(loadProg())));
+  const [showTasks,       setShowTasks]       = React.useState(false);
+  const [showBadges,      setShowBadges]      = React.useState(false);
+  const [showAvatarEditor,setShowAvatarEditor]= React.useState(false);
+  const [user,            setUser]            = React.useState(null);
+  const [authLoading,     setAuthLoading]     = React.useState(true);
 
   React.useEffect(() => {
     sb.auth.getSession().then(({ data: { session } }) => {
@@ -1644,7 +1944,7 @@ function App() {
       setUser(u);
       if (u) {
         loadProgFromDB(u.id).then(p => {
-          if (p) setProg(ensureDaily(p));
+          if (p) setProg(ensureCosmetics(ensureDaily(p)));
         });
       }
       setAuthLoading(false);
@@ -1654,7 +1954,7 @@ function App() {
       setUser(u);
       if (u) {
         loadProgFromDB(u.id).then(p => {
-          if (p) setProg(ensureDaily(p));
+          if (p) setProg(ensureCosmetics(ensureDaily(p)));
         });
       }
     });
@@ -1682,6 +1982,14 @@ function App() {
 
   const retry = () => startQuiz(difficulty, questions.length);
 
+  const updateCosmetics = (cos) => {
+    const newProg = { ...prog, cosmetics: cos };
+    setProg(newProg);
+    saveProg(newProg);
+    if (user) saveProgToDB(user.id, newProg);
+    setShowAvatarEditor(false);
+  };
+
   if (authLoading) return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       background:'#0F1A2E' }}>
@@ -1696,8 +2004,16 @@ function App() {
 
   return (
     <div>
-      {/* 登出按鈕 */}
-      <div style={{ position:'fixed', top:12, right:16, zIndex:500 }}>
+      {/* 頂部操作列 */}
+      <div style={{ position:'fixed', top:12, right:16, zIndex:500, display:'flex', gap:8 }}>
+        {screen === 'home' && (
+          <button onClick={() => setShowAvatarEditor(true)} className="btn-press" style={{
+            display:'flex', alignItems:'center', gap:5, padding:'6px 10px',
+            background:'#1E293B', border:'3px solid #3B82F6', borderRadius:8,
+            fontSize:12, fontWeight:800, color:'#93C5FD', cursor:'pointer',
+            boxShadow:'0 3px 0 #1E3A8A', fontFamily:'Fredoka, sans-serif',
+          }}>🎭 角色</button>
+        )}
         <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
           display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
           background:'#1E293B', border:'3px solid #334155', borderRadius:8,
@@ -1714,21 +2030,23 @@ function App() {
       {screen === 'home' && (
         <HomeScreen prog={prog} onStart={startQuiz}
           onShowTasks={() => setShowTasks(true)}
-          onShowBadges={() => setShowBadges(true)}/>
+          onShowBadges={() => setShowBadges(true)}
+          onAvatarEdit={() => setShowAvatarEditor(true)}/>
       )}
       {screen === 'quiz' && (
         <QuizScreen
           key={questions.map(q=>q.text||q.word||q.sentence||'').join()}
           questions={questions} difficulty={difficulty} onFinish={finishQuiz}
-          onQuit={() => setScreen('home')}/>
+          onQuit={() => setScreen('home')} cosmetics={prog.cosmetics}/>
       )}
       {screen === 'results' && sessionResult && (
         <ResultsScreen results={results} difficulty={difficulty} questions={questions}
           sessionResult={sessionResult}
           onHome={() => setScreen('home')} onRetry={retry}/>
       )}
-      {showTasks  && <TasksModal  prog={prog} onClose={() => setShowTasks(false)}/>}
-      {showBadges && <BadgesModal prog={prog} onClose={() => setShowBadges(false)}/>}
+      {showTasks        && <TasksModal    prog={prog} onClose={() => setShowTasks(false)}/>}
+      {showBadges       && <BadgesModal   prog={prog} onClose={() => setShowBadges(false)}/>}
+      {showAvatarEditor && <AvatarEditor  prog={prog} onSave={updateCosmetics} onClose={() => setShowAvatarEditor(false)}/>}
     </div>
   );
 }
