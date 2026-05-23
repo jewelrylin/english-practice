@@ -1367,17 +1367,8 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
 
 // ── Home screen ───────────────────────────────────────────────────────────────
 function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
-  const [count,     setCount]     = React.useState(10);
-  const [userCount, setUserCount] = React.useState(null);
+  const [count, setCount] = React.useState(10);
   const p = ensureDaily(prog);
-
-  React.useEffect(() => {
-    sb.from('user_progress')
-      .select('id', { count: 'exact', head: true })
-      .then(({ count, error }) => {
-        if (!error) setUserCount(count ?? 0);
-      });
-  }, []);
   const lv = getLevel(p.xp);
   const daily = p.daily;
   const todayTasks = TASK_POOL.filter(t => daily.taskIds.includes(t.id));
@@ -1399,14 +1390,6 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
         <p style={{ color:'#94A3B8', fontSize:12, fontWeight:400, letterSpacing:0.5 }}>
           SELECT YOUR WORLD — 每次題目都不一樣 🎲
         </p>
-        {userCount !== null && (
-          <div style={{ display:'inline-flex', alignItems:'center', gap:6, marginTop:6,
-            background:'#1E293B', border:'2px solid #10B981', borderRadius:8,
-            padding:'4px 14px', fontSize:12, fontWeight:600, color:'#10B981',
-            boxShadow:'0 0 12px rgba(16,185,129,0.3)' }}>
-            🟢 {userCount} 位玩家加入
-          </div>
-        )}
       </div>
 
       {/* Player Card */}
@@ -1515,12 +1498,19 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
 
 // ── Login screen ─────────────────────────────────────────────────────────────
 function LoginScreen() {
-  const [tab,      setTab]      = React.useState('login'); // login | register
-  const [email,    setEmail]    = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [loading,  setLoading]  = React.useState(false);
-  const [error,    setError]    = React.useState('');
-  const [done,     setDone]     = React.useState(''); // success message
+  const [tab,       setTab]      = React.useState('login'); // login | register
+  const [email,     setEmail]    = React.useState('');
+  const [password,  setPassword] = React.useState('');
+  const [loading,   setLoading]  = React.useState(false);
+  const [error,     setError]    = React.useState('');
+  const [done,      setDone]     = React.useState(''); // success message
+  const [userCount, setUserCount] = React.useState(null);
+
+  React.useEffect(() => {
+    sb.from('user_progress')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count, error }) => { if (!error) setUserCount(count ?? 0); });
+  }, []);
 
   // inputStyle replaced by .rb-input class — kept as reference
   const inputStyle = {};
@@ -1550,8 +1540,16 @@ function LoginScreen() {
       {/* Logo area */}
       <div className="bobble" style={{ marginBottom:10 }}><Pip size={90} pose="wave"/></div>
       <div style={{ textAlign:'center', marginBottom:20 }}>
-        <h1 style={{ fontSize:32, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', margin:'0 0 4px',
+        <h1 style={{ fontSize:32, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', margin:'0 0 8px',
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>ENGLISH QUEST</h1>
+        {userCount !== null && (
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, marginBottom:8,
+            background:'#1E293B', border:'2px solid #10B981', borderRadius:8,
+            padding:'5px 14px', fontSize:13, fontWeight:600, color:'#10B981',
+            boxShadow:'0 0 12px rgba(16,185,129,0.3)' }}>
+            🟢 已有 <b style={{ fontWeight:800 }}>{userCount}</b> 位玩家加入
+          </div>
+        )}
         <div style={{ fontSize:12, color:'#64748B', fontWeight:400, letterSpacing:0.5 }}>
           登入後可跨裝置同步學習進度
         </div>
