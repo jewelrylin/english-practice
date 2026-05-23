@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pip's English Practice</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: linear-gradient(135deg, #e8f4ff 0%, #f0f0ff 50%, #fff0f5 100%);
+      min-height: 100vh; font-family: 'Nunito', system-ui, sans-serif; color: #2d3a2e; }
+    button { font-family: inherit; cursor: pointer; }
+    @keyframes slideUp  { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+    @keyframes bobble   { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes wavebar  { 0%,100% { height:30%; } 50% { height:90%; } }
+    @keyframes xpPop    { 0% { opacity:0; transform:scale(0.6) translateY(6px); }
+                          40% { opacity:1; transform:scale(1.15) translateY(-4px); }
+                          100% { opacity:0; transform:scale(0.9) translateY(-32px); } }
+    @keyframes badgePop { 0% { opacity:0; transform:scale(0.3) rotate(-15deg); }
+                          70% { transform:scale(1.15) rotate(3deg); }
+                          100% { opacity:1; transform:scale(1) rotate(0); } }
+    @keyframes lvlUp    { 0% { opacity:0; transform:scale(0.4); }
+                          60% { transform:scale(1.08); }
+                          100% { opacity:1; transform:scale(1); } }
+    @keyframes shimmer  { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    .slide-up   { animation: slideUp .35s ease-out; }
+    .bobble     { animation: bobble 2s ease-in-out infinite; }
+    .wave-bar   { animation: wavebar 0.8s ease-in-out infinite; }
+    .xp-pop     { animation: xpPop 1.1s ease-out forwards; }
+    .badge-pop  { animation: badgePop .5s ease-out; }
+    .lvl-up     { animation: lvlUp .5s ease-out; }
+    .btn-press  { transition: transform .1s, box-shadow .1s; }
+    .btn-press:active { transform: translateY(3px) !important; }
+    .modal-bg   { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(4px);
+                  z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal-box  { background:#fff; border-radius:28px; width:100%; max-width:500px; max-height:85vh;
+                  overflow-y:auto; padding:24px 20px; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+    ::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://qxhnslnsplkhcieebrcc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable__-Gh98OyO_R9i6xQpa-sHQ_42lHAIah';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadProgFromDB(userId) {
+  const { data } = await sb.from('user_progress').select('progress').eq('user_id', userId).single();
+  return data?.progress || null;
+}
+async function saveProgToDB(userId, prog) {
+  await sb.from('user_progress').upsert(
+    { user_id: userId, progress: prog, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+function shade(hex, pct) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const clamp = v => Math.max(0, Math.min(255, v));
+  const d = Math.round(255 * pct / 100);
+  return '#' + [n>>16, (n>>8)&0xff, n&0xff].map(c => clamp(c+d).toString(16).padStart(2,'0')).join('');
+}
+function speakEn(text, rate=0.85) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = rate; speechSynthesis.speak(u);
+}
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+// ── Progress / Storage ────────────────────────────────────────────────────────
+const STORE_KEY = 'pip_english_v1';
+
+const LEVELS = [0, 80, 200, 400, 700, 1100, 1700, 2500, 3600, 5000];
+const LEVEL_TITLES = ['初學者','入門者','學習者','中級生','進階者','熟練者','高手','達人','專家','大師'];
+const DIFF_XP = { easy:5, medium:10, hard:15, expert:25 };
+
+function getLevel(xp) {
+  let lv = 1;
+  for (let i = 1; i < LEVELS.length; i++) { if (xp >= LEVELS[i]) lv = i+1; else break; }
+  return Math.min(lv, 10);
+}
+function nextLevelXP(xp) {
+  const lv = getLevel(xp);
+  return lv >= 10 ? null : LEVELS[lv];
+}
+
+const BADGE_DEFS = [
+  { id:'first',      emoji:'🐣', name:'新手上路',   desc:'答對第一題',              check: p => p.totalCorrect >= 1 },
+  { id:'streak3',    emoji:'🔥', name:'連勝高手',   desc:'單場連續答對 3 題',       check: p => p.maxStreak >= 3 },
+  { id:'streak10',   emoji:'⚡', name:'火熱狀態',   desc:'單場連續答對 10 題',      check: p => p.maxStreak >= 10 },
+  { id:'perfect',    emoji:'💯', name:'完美主義',   desc:'某場練習全部答對',         check: p => p.perfectSessions >= 1 },
+  { id:'c50',        emoji:'📚', name:'知識達人',   desc:'累計答對 50 題',          check: p => p.totalCorrect >= 50 },
+  { id:'c100',       emoji:'🎯', name:'百發百中',   desc:'累計答對 100 題',         check: p => p.totalCorrect >= 100 },
+  { id:'expert',     emoji:'🏆', name:'專家勇士',   desc:'完成高級練習',             check: p => (p.diffStats?.expert||0) >= 1 },
+  { id:'xp500',      emoji:'🌟', name:'學習之星',   desc:'累計 500 XP',             check: p => p.xp >= 500 },
+  { id:'sessions5',  emoji:'📅', name:'持之以恆',   desc:'完成 5 場練習',           check: p => p.totalSessions >= 5 },
+  { id:'all_diffs',  emoji:'🌈', name:'全面挑戰',   desc:'四種難度各完成一場',      check: p => ['easy','medium','hard','expert'].every(k => (p.diffStats?.[k]||0) >= 1) },
+  { id:'listen10',   emoji:'👂', name:'耳朵尖銳',   desc:'聆聽題答對 10 次',        check: p => (p.typeCorrect?.listen||0) >= 10 },
+  { id:'daily',      emoji:'🗓️', name:'日日精進',   desc:'完成全部每日任務',         check: p => p.allDailyDone >= 1 },
+];
+
+const TASK_POOL = [
+  { id:'q10',     emoji:'📝', name:'勤奮學習',  desc:'今天答 10 題',       key:'answered', target:10, reward:30 },
+  { id:'c5',      emoji:'✅', name:'一鼓作氣',  desc:'今天答對 5 題',      key:'correct',  target:5,  reward:25 },
+  { id:'sess1',   emoji:'🎓', name:'完成練習',  desc:'完成一場練習',        key:'sessions', target:1,  reward:20 },
+  { id:'hard1',   emoji:'💪', name:'挑戰自我',  desc:'完成進階/高級練習',  key:'hardSess', target:1,  reward:35 },
+  { id:'perf1',   emoji:'💯', name:'完美成績',  desc:'拿下一場滿分',        key:'perfect',  target:1,  reward:50 },
+  { id:'str5',    emoji:'🔥', name:'連勝達人',  desc:'單場連對 5 題',      key:'streak',   target:5,  reward:30 },
+  { id:'listen3', emoji:'👂', name:'聆聽練習',  desc:'答對 3 題聆聽題',    key:'listenOk', target:3,  reward:20 },
+];
+
+function loadProg() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    const base = { xp:0, totalCorrect:0, totalSessions:0, perfectSessions:0,
+      maxStreak:0, diffStats:{easy:0,medium:0,hard:0,expert:0},
+      typeCorrect:{listen:0,phonics:0,fill:0,order:0},
+      badges:[], allDailyDone:0, daily:null };
+    return raw ? { ...base, ...JSON.parse(raw) } : base;
+  } catch { return { xp:0, totalCorrect:0, totalSessions:0, perfectSessions:0,
+    maxStreak:0, diffStats:{easy:0,medium:0,hard:0,expert:0},
+    typeCorrect:{listen:0,phonics:0,fill:0,order:0}, badges:[], allDailyDone:0, daily:null }; }
+}
+function saveProg(p) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(p)); } catch {}
+}
+function ensureDaily(p) {
+  const today = todayStr();
+  if (p.daily?.date === today) return p;
+  const ids = shuffle(TASK_POOL).slice(0,3).map(t=>t.id);
+  return { ...p, daily:{ date:today, taskIds:ids, done:[],
+    answered:0, correct:0, sessions:0, hardSess:0, perfect:0, streak:0, listenOk:0 } };
+}
+
+function calcMaxStreak(results) {
+  let max=0, cur=0;
+  for (const r of results) { if (r) { cur++; max=Math.max(max,cur); } else cur=0; }
+  return max;
+}
+
+// After a session: compute gains, update progress, return what changed
+function processSession({ prog, results, difficulty, questions }) {
+  let p = ensureDaily({ ...prog,
+    diffStats: { ...prog.diffStats },
+    typeCorrect: { ...prog.typeCorrect },
+    daily: prog.daily ? { ...prog.daily } : null });
+
+  const correct = results.filter(Boolean).length;
+  const total   = results.length;
+  const pct     = Math.round((correct/total)*100);
+  const streak  = calcMaxStreak(results);
+  const perfect = pct === 100;
+
+  // Per-question XP
+  const baseXP = correct * DIFF_XP[difficulty];
+  // Session bonus
+  const bonusXP = perfect ? 50 : pct >= 90 ? 30 : pct >= 70 ? 15 : 0;
+  // Streak bonus
+  const streakBonus = Math.floor(streak / 3) * 5;
+  let xpGained = baseXP + bonusXP + streakBonus;
+
+  // Type stats
+  questions.forEach((q, i) => {
+    if (results[i]) p.typeCorrect[q.type] = (p.typeCorrect[q.type]||0) + 1;
+  });
+
+  const listenCorrectThisSession = questions.filter((q,i) => q.type==='listen' && results[i]).length;
+
+  // Update core stats
+  p.xp                += xpGained;
+  p.totalCorrect      += correct;
+  p.totalSessions     += 1;
+  if (perfect) p.perfectSessions += 1;
+  p.maxStreak          = Math.max(p.maxStreak, streak);
+  p.diffStats[difficulty] = (p.diffStats[difficulty]||0) + 1;
+
+  // Daily tracking
+  p.daily.answered += total;
+  p.daily.correct  += correct;
+  p.daily.sessions += 1;
+  if (difficulty === 'hard' || difficulty === 'expert') p.daily.hardSess += 1;
+  if (perfect) p.daily.perfect += 1;
+  p.daily.streak   = Math.max(p.daily.streak, streak);
+  p.daily.listenOk += listenCorrectThisSession;
+
+  // Check daily tasks completion & award XP
+  const newlyCompletedTasks = [];
+  const taskDefs = TASK_POOL.filter(t => p.daily.taskIds.includes(t.id));
+  taskDefs.forEach(t => {
+    if (p.daily.done.includes(t.id)) return;
+    const val = p.daily[t.key] || 0;
+    if (val >= t.target) {
+      p.daily.done.push(t.id);
+      p.xp += t.reward;
+      xpGained += t.reward;
+      newlyCompletedTasks.push(t);
+    }
+  });
+  const allDailyNowDone = taskDefs.length > 0 && taskDefs.every(t => p.daily.done.includes(t.id));
+  if (allDailyNowDone && !prog.daily?.done?.length === 0) p.allDailyDone += 1;
+
+  // Check badge unlocks
+  const prevBadges = new Set(prog.badges || []);
+  const newBadges  = [];
+  BADGE_DEFS.forEach(b => {
+    if (!prevBadges.has(b.id) && b.check(p)) {
+      p.badges = [...(p.badges||[]), b.id];
+      newBadges.push(b);
+    }
+  });
+
+  // Level up?
+  const prevLv = getLevel(prog.xp);
+  const newLv  = getLevel(p.xp);
+  const leveledUp = newLv > prevLv;
+
+  saveProg(p);
+  return { p, xpGained, bonusXP, streakBonus, streak, newBadges, leveledUp, newLv,
+           newlyCompletedTasks, allDailyDone: allDailyNowDone };
+}
+
+// ── Pip mascot ────────────────────────────────────────────────────────────────
+function Pip({ size=80, pose='idle' }) {
+  const eyes = <g><circle cx="38" cy="42" r="5" fill="#2a1f1a"/><circle cx="62" cy="42" r="5" fill="#2a1f1a"/>
+    <circle cx="39.5" cy="40.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="40.5" r="1.6" fill="#fff"/></g>;
+  const beak = pose==='sing' ? <ellipse cx="50" cy="55" rx="6" ry="5" fill="#ff8a3d"/>
+    : <path d="M44 52 L50 60 L56 52 Z" fill="#ff8a3d"/>;
+  const lw = (pose==='wave'||pose==='cheer') ? <path d="M18 50 Q8 30 18 22 Q22 32 24 48 Z" fill="#fbc02d"/>
+    : <ellipse cx="22" cy="58" rx="8" ry="14" fill="#fbc02d" transform="rotate(-15 22 58)"/>;
+  const rw = pose==='cheer' ? <path d="M82 50 Q92 30 82 22 Q78 32 76 48 Z" fill="#fbc02d"/>
+    : <ellipse cx="78" cy="58" rx="8" ry="14" fill="#fbc02d" transform="rotate(15 78 58)"/>;
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size}>
+      <ellipse cx="42" cy="92" rx="6" ry="3" fill="#ff8a3d"/>
+      <ellipse cx="58" cy="92" rx="6" ry="3" fill="#ff8a3d"/>
+      <ellipse cx="50" cy="60" rx="32" ry="30" fill="#ffd45e"/>
+      <ellipse cx="50" cy="68" rx="20" ry="16" fill="#fff3c2"/>
+      {lw}{rw}
+      <ellipse cx="42" cy="35" rx="10" ry="6" fill="#fff3c2" opacity="0.6"/>
+      <path d="M50 18 Q46 8 52 12 Q54 6 58 14 Q60 8 56 18 Z" fill="#ff8a3d"/>
+      <g><ellipse cx="30" cy="52" rx="5" ry="3" fill="#ff9eb5" opacity="0.7"/>
+         <ellipse cx="70" cy="52" rx="5" ry="3" fill="#ff9eb5" opacity="0.7"/></g>
+      {eyes}{beak}
+    </svg>
+  );
+}
+
+// ── Question bank ─────────────────────────────────────────────────────────────
+const QB = {
+  easy: {
+    label:'初級 Easy', color:'#3aa56b', bg:'#e8f8ef', stars:1, emoji:'🌱',
+    desc:'基本單字・動物・顏色・CVC拼音',
+    questions:[
+      { type:'listen', text:'cat',  cn:'貓',  emoji:'🐱', choices:['cat','bat','hat','rat'],    correct:0 },
+      { type:'listen', text:'dog',  cn:'狗',  emoji:'🐶', choices:['fog','log','dog','hog'],    correct:2 },
+      { type:'listen', text:'red',  cn:'紅色', emoji:'🔴', choices:['bed','red','fed','led'],    correct:1 },
+      { type:'listen', text:'sun',  cn:'太陽', emoji:'☀️', choices:['bun','fun','run','sun'],    correct:3 },
+      { type:'listen', text:'big',  cn:'大的', emoji:'🐘', choices:['bid','bit','big','bin'],    correct:2 },
+      { type:'listen', text:'fish', cn:'魚',  emoji:'🐟', choices:['dish','wish','fish','kiss'], correct:2 },
+      { type:'phonics', word:'cat', slots:['c','_','t'], answer:'a', emoji:'🐱', choices:['a','i','o','u'] },
+      { type:'phonics', word:'dog', slots:['d','_','g'], answer:'o', emoji:'🐶', choices:['a','e','o','u'] },
+      { type:'phonics', word:'hen', slots:['h','_','n'], answer:'e', emoji:'🐔', choices:['a','e','i','o'] },
+      { type:'phonics', word:'pig', slots:['p','_','g'], answer:'i', emoji:'🐷', choices:['a','e','i','o'] },
+      { type:'phonics', word:'cup', slots:['c','_','p'], answer:'u', emoji:'☕', choices:['a','e','i','u'] },
+      { type:'phonics', word:'bat', slots:['b','_','t'], answer:'a', emoji:'🦇', choices:['a','e','i','u'] },
+      { type:'fill', sentence:'I have a ___ .', answer:'cat',  emoji:'🐱', choices:['cat','run','blue','fast'], hint:'名詞' },
+      { type:'fill', sentence:'The sky is ___ .', answer:'blue', emoji:'🌤️', choices:['blue','happy','run','book'], hint:'顏色' },
+      { type:'fill', sentence:'I can ___ fast!', answer:'run',  emoji:'🏃', choices:['run','blue','hot','pen'],   hint:'動詞' },
+      { type:'fill', sentence:'The apple is ___ .', answer:'red', emoji:'🍎', choices:['red','book','swim','tall'],  hint:'顏色' },
+      { type:'fill', sentence:'She has two ___ .', answer:'dogs', emoji:'🐶', choices:['dogs','run','big','fast'],   hint:'複數名詞' },
+      { type:'fill', sentence:'He is a ___ boy.', answer:'good', emoji:'👦', choices:['good','run','hot','blue'],   hint:'形容詞' },
+    ]
+  },
+  medium: {
+    label:'中級 Medium', color:'#5b8def', bg:'#e8f0ff', stars:2, emoji:'🌿',
+    desc:'日常對話・動詞時態・常用句型',
+    questions:[
+      { type:'listen', text:'Where is the library?', cn:'圖書館在哪裡？', emoji:'📚',
+        choices:['What is the library?','Where is the library?','When is the library open?','Who is the librarian?'], correct:1 },
+      { type:'listen', text:'I would like some coffee, please.', cn:'我想要咖啡，謝謝。', emoji:'☕',
+        choices:['I would like some tea.','Can I have water?','I would like some coffee, please.','Do you have juice?'], correct:2 },
+      { type:'listen', text:'What time does the bus leave?', cn:'公車幾點開？', emoji:'🚌',
+        choices:['Where does the bus go?','What time does the bus leave?','How long is the bus ride?','Which bus should I take?'], correct:1 },
+      { type:'listen', text:'I have been here for three days.', cn:'我在這裡已經三天了。', emoji:'📅',
+        choices:['I was here three days ago.','I will be here for three days.','I have been here for three days.','I am here every three days.'], correct:2 },
+      { type:'listen', text:'How much does this cost?', cn:'這個多少錢？', emoji:'💰',
+        choices:['How much is this?','How much does this cost?','How many do you want?','What is the price?'], correct:1 },
+      { type:'fill', sentence:'She ___ to school every day.', answer:'goes', emoji:'🏫',
+        choices:['goes','go','going','went'], hint:'第三人稱單數' },
+      { type:'fill', sentence:'They ___ playing football now.', answer:'are', emoji:'⚽',
+        choices:['are','is','was','were'], hint:'現在進行式' },
+      { type:'fill', sentence:'I ___ dinner last night.', answer:'cooked', emoji:'🍳',
+        choices:['cooked','cook','cooking','cooks'], hint:'過去式' },
+      { type:'fill', sentence:'He is ___ than his brother.', answer:'taller', emoji:'📏',
+        choices:['taller','tall','tallest','more tall'], hint:'比較級' },
+      { type:'fill', sentence:'There ___ many books on the shelf.', answer:'are', emoji:'📚',
+        choices:['are','is','was','has'], hint:'複數動詞' },
+      { type:'fill', sentence:'She asked me ___ the door.', answer:'to close', emoji:'🚪',
+        choices:['to close','closing','close','closed'], hint:'不定詞' },
+      { type:'fill', sentence:'___ you like to have lunch with us?', answer:'Would', emoji:'🍽️',
+        choices:['Would','Should','Could','Must'], hint:'禮貌用語' },
+      { type:'order', words:['reads','she','every','books','day'], answer:'she reads books every day', emoji:'📚' },
+      { type:'order', words:['is','where','cat','the','?'], answer:'where is the cat ?', emoji:'🐱' },
+      { type:'order', words:['library','went','to','yesterday','i','the'], answer:'i went to the library yesterday', emoji:'📖' },
+      { type:'order', words:['raining','it','is','today'], answer:'it is raining today', emoji:'🌧️' },
+      { type:'order', words:['football','they','are','playing'], answer:'they are playing football', emoji:'⚽' },
+    ]
+  },
+  hard: {
+    label:'進階 Hard', color:'#9b59b6', bg:'#f3eaff', stars:3, emoji:'🌳',
+    desc:'片語動詞・完成式・條件句',
+    questions:[
+      { type:'listen', text:'Could you please turn down the music?', cn:'可以把音樂關小聲嗎？', emoji:'🎵',
+        choices:['Could you turn up the music?','Could you please turn down the music?','Can you play some music?','Would you turn off the music?'], correct:1 },
+      { type:'listen', text:"I've been waiting here for over an hour.", cn:'我在這裡等了超過一個小時。', emoji:'⏰',
+        choices:["I waited here for an hour.","I've been waiting here for over an hour.","I will wait here for an hour.","I was waiting here an hour ago."], correct:1 },
+      { type:'listen', text:'If I had studied harder, I would have passed.', cn:'如果當時更努力，我就通過了。', emoji:'📖',
+        choices:['If I study harder, I will pass.','If I had studied harder, I would have passed.','If I study, I would pass.','I studied hard so I passed.'], correct:1 },
+      { type:'listen', text:'The project must be completed by Friday.', cn:'此專案必須在週五前完成。', emoji:'📋',
+        choices:['The project should be done on Friday.','The project must be completed by Friday.','The project was finished last Friday.','The project will start on Friday.'], correct:1 },
+      { type:'fill', sentence:"I'm looking ___ my keys.", answer:'for', emoji:'🔑',
+        choices:['for','at','up','on'], hint:'介系詞' },
+      { type:'fill', sentence:'She gave ___ smoking last year.', answer:'up', emoji:'🚭',
+        choices:['up','out','off','in'], hint:'片語動詞' },
+      { type:'fill', sentence:'The meeting was called ___ due to rain.', answer:'off', emoji:'📅',
+        choices:['off','out','up','in'], hint:'片語動詞' },
+      { type:'fill', sentence:'He ___ been studying for three hours.', answer:'has', emoji:'📖',
+        choices:['has','have','had','having'], hint:'現在完成式' },
+      { type:'fill', sentence:'You ___ wear a seatbelt in a car.', answer:'must', emoji:'🚗',
+        choices:['must','might','could','should'], hint:'義務情態' },
+      { type:'fill', sentence:'The book was written ___ Shakespeare.', answer:'by', emoji:'📜',
+        choices:['by','from','with','of'], hint:'被動式' },
+      { type:'fill', sentence:'She ___ the offer if she had known.', answer:'would have taken', emoji:'💼',
+        choices:['would have taken','would take','will take','has taken'], hint:'假設過去' },
+      { type:'order', words:['for','she','waiting','has','two','been','hours'], answer:'she has been waiting for two hours', emoji:'⏰' },
+      { type:'order', words:['smoking','he','given','has','up'], answer:'he has given up smoking', emoji:'🚭' },
+      { type:'order', words:["you'll",'if','study','hard','you','pass'], answer:"if you study hard you'll pass", emoji:'📚' },
+      { type:'order', words:['rain','if','it','stay','will','we','inside'], answer:'if it rains we will stay inside', emoji:'🌧️' },
+    ]
+  },
+  expert: {
+    label:'高級 Expert', color:'#b88a1f', bg:'#fffbe8', stars:4, emoji:'🏆',
+    desc:'慣用語・高階詞彙・商業英文',
+    questions:[
+      { type:'listen', text:'The proposal was met with considerable skepticism.', cn:'這個提案遭到相當大的懷疑。', emoji:'🏛️',
+        choices:['The proposal was approved easily.','The committee liked the proposal.','The proposal was met with considerable skepticism.','The proposal was rejected completely.'], correct:2 },
+      { type:'listen', text:'Notwithstanding the challenges, we delivered on time.', cn:'儘管有挑戰，我們仍按時交付。', emoji:'🎯',
+        choices:['Because of the challenges, we were late.','Notwithstanding the challenges, we delivered on time.','Due to the challenges, we failed.','Despite delivering on time, there were challenges.'], correct:1 },
+      { type:'listen', text:'The acquisition was subject to regulatory approval.', cn:'此收購須受監管機構批准。', emoji:'🏢',
+        choices:['The acquisition was approved immediately.','The acquisition required no approval.','The acquisition was subject to regulatory approval.','The regulations blocked the acquisition.'], correct:2 },
+      { type:'listen', text:'His remarks were taken out of context.', cn:'他的話被斷章取義了。', emoji:'🗣️',
+        choices:["His remarks were misunderstood.","His remarks were taken out of context.","He refused to make any remarks.","His remarks were completely accurate."], correct:1 },
+      { type:'fill', sentence:'He let the cat ___ of the bag.', answer:'out', emoji:'🐱',
+        choices:['out','in','off','up'], hint:'慣用語' },
+      { type:'fill', sentence:"It's raining cats and ___ outside.", answer:'dogs', emoji:'🌧️',
+        choices:['dogs','birds','fish','mice'], hint:'慣用語' },
+      { type:'fill', sentence:'She ___ the bullet and accepted the offer.', answer:'bit', emoji:'💼',
+        choices:['bit','took','hit','cut'], hint:'慣用語' },
+      { type:'fill', sentence:'The decision was reached by ___.', answer:'consensus', emoji:'🤝',
+        choices:['consensus','concession','conference','consequence'], hint:'商業詞彙' },
+      { type:'fill', sentence:'She showed great ___ under pressure.', answer:'resilience', emoji:'💪',
+        choices:['resilience','resistance','reliance','relevance'], hint:'高階詞彙' },
+      { type:'fill', sentence:"The CEO's plan was ___ by the board.", answer:'ratified', emoji:'🏢',
+        choices:['ratified','rectified','notified','verified'], hint:'商業詞彙' },
+      { type:'fill', sentence:'The ambiguity was ___ rather than accidental.', answer:'deliberate', emoji:'📝',
+        choices:['deliberate','delicate','definite','decisive'], hint:'形容詞' },
+      { type:'order', words:['consideration','taken','all','having','into','factors'], answer:'having taken all factors into consideration', emoji:'🧠' },
+      { type:'order', words:['matter','the','sooner','is','resolved','the','better'], answer:'the sooner the matter is resolved the better', emoji:'⏱️' },
+      { type:'order', words:['would','been','he','have','notified','earlier'], answer:'he would have been notified earlier', emoji:'📬' },
+    ]
+  }
+};
+
+const VOWEL_IPA = { a:'/æ/', e:'/ɛ/', i:'/ɪ/', o:'/ɒ/', u:'/ʌ/', sh:'/ʃ/', th:'/θ/', ch:'/tʃ/', wh:'/w/' };
+function slotIPA(s, picked) {
+  if (s !== '_') return s==='c' ? '/k/' : s==='t' ? '/t/' : `/${s}/`;
+  if (!picked) return '/  /';
+  return VOWEL_IPA[picked] || `/${picked}/`;
+}
+
+// ── Shared UI ──────────────────────────────────────────────────────────────────
+function SoundWave({ active, color='#5b8def', bars=12 }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:3, height:28 }}>
+      {Array.from({length:bars}).map((_,i) => (
+        <div key={i} className={active ? 'wave-bar' : ''} style={{
+          width:4, borderRadius:2, background:color, height:'35%', opacity:active?1:0.35,
+          animationDelay:`${i*0.07}s`,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function BigButton({ children, color='#5b8def', onClick, full=false, disabled=false, style={} }) {
+  return (
+    <button className="btn-press" onClick={onClick} disabled={disabled} style={{
+      background: disabled ? '#cdd2dc' : color, color:'#fff', border:'none',
+      borderRadius:20, padding:'14px 24px', fontSize:16, fontWeight:800,
+      fontFamily:'Fredoka, sans-serif',
+      boxShadow: disabled ? 'none' : `inset 0 -4px 0 ${shade(color,-22)}, 0 3px 0 rgba(0,0,0,0.08)`,
+      width: full ? '100%' : 'auto', letterSpacing:0.3, textTransform:'uppercase',
+      cursor: disabled ? 'not-allowed' : 'pointer', ...style,
+    }}>{children}</button>
+  );
+}
+
+// XP bar widget
+function XPBar({ xp, color='#5b8def', compact=false }) {
+  const lv  = getLevel(xp);
+  const cur = LEVELS[lv-1] || 0;
+  const nxt = nextLevelXP(xp);
+  const pct = nxt ? Math.round(((xp-cur)/(nxt-cur))*100) : 100;
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+      <div style={{ width:compact?32:38, height:compact?32:38, borderRadius:'50%',
+        background:`linear-gradient(135deg, ${color}, ${shade(color,-20)})`,
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+        boxShadow:`0 2px 8px ${color}55` }}>
+        <span style={{ color:'#fff', fontSize:compact?12:13, fontWeight:800, fontFamily:'Fredoka, sans-serif' }}>
+          {lv}
+        </span>
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        {!compact && <div style={{ fontSize:11, fontWeight:800, color:'#888', marginBottom:3 }}>
+          Lv.{lv} {LEVEL_TITLES[lv-1]} · {xp} XP {nxt ? `→ ${nxt}` : '🏆'}
+        </div>}
+        <div style={{ height:8, borderRadius:999, background:'rgba(0,0,0,0.08)', overflow:'hidden' }}>
+          <div style={{ height:'100%', width:`${pct}%`, borderRadius:999,
+            background:`linear-gradient(90deg, ${shade(color,15)}, ${color})`,
+            transition:'width .5s', boxShadow:`inset 0 -2px 0 ${shade(color,-18)}` }}/>
+        </div>
+        {!compact && nxt && <div style={{ fontSize:10, color:'#aaa', marginTop:2, fontWeight:600 }}>
+          再 {nxt-xp} XP 升級
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+// ── Tasks modal ───────────────────────────────────────────────────────────────
+function TasksModal({ prog, onClose }) {
+  const p = ensureDaily(prog);
+  const daily = p.daily;
+  const tasks = TASK_POOL.filter(t => daily.taskIds.includes(t.id));
+  const completedAll = tasks.every(t => daily.done.includes(t.id));
+
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-box slide-up">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif' }}>📋 每日任務</div>
+            <div style={{ fontSize:12, color:'#aaa', fontWeight:600 }}>每天重新整理 · 完成獲得 XP 獎勵</div>
+          </div>
+          <button onClick={onClose} style={{ background:'#f5f5f5', border:'none', borderRadius:12,
+            width:36, height:36, fontSize:16, cursor:'pointer' }}>✕</button>
+        </div>
+
+        {completedAll && (
+          <div style={{ background:'linear-gradient(135deg,#ffd45e,#ff8a3d)', borderRadius:16,
+            padding:'14px 16px', marginBottom:14, color:'#fff', fontWeight:800, fontSize:14,
+            display:'flex', alignItems:'center', gap:10 }}>
+            <span style={{fontSize:24}}>🎉</span>
+            <span>今日任務全部完成！明天再見！</span>
+          </div>
+        )}
+
+        <div style={{ display:'grid', gap:10, marginBottom:20 }}>
+          {tasks.map(t => {
+            const done = daily.done.includes(t.id);
+            const progress = Math.min(daily[t.key]||0, t.target);
+            const pct = Math.round((progress/t.target)*100);
+            return (
+              <div key={t.id} style={{ background: done ? '#e8f8ef' : '#f8f9ff', borderRadius:16,
+                padding:'14px 16px', border:`2px solid ${done ? '#3aa56b' : '#e0e8ff'}` }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:26 }}>{t.emoji}</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:800, fontSize:14, color: done ? '#1a6b40' : '#2d3a2e' }}>
+                      {t.name}
+                      {done && <span style={{ marginLeft:8, fontSize:12, color:'#3aa56b' }}>✓ 完成！</span>}
+                    </div>
+                    <div style={{ fontSize:12, color:'#888', fontWeight:600, marginTop:1 }}>{t.desc}</div>
+                    <div style={{ marginTop:8, height:6, borderRadius:999, background:'rgba(0,0,0,0.08)', overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:`${pct}%`, borderRadius:999,
+                        background: done ? '#3aa56b' : '#5b8def', transition:'width .4s' }}/>
+                    </div>
+                    <div style={{ fontSize:11, color:'#aaa', marginTop:3, fontWeight:600 }}>
+                      {progress} / {t.target}
+                    </div>
+                  </div>
+                  <div style={{ textAlign:'center', minWidth:48 }}>
+                    <div style={{ fontSize:11, color:'#b88a1f', fontWeight:800 }}>+{t.reward}</div>
+                    <div style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>XP</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ background:'#f8f9ff', borderRadius:16, padding:'12px 16px' }}>
+          <div style={{ fontSize:12, fontWeight:800, color:'#888', marginBottom:8 }}>本日統計</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, textAlign:'center' }}>
+            {[
+              { label:'已答題', value: daily.answered },
+              { label:'答對題', value: daily.correct  },
+              { label:'完成場次', value: daily.sessions },
+            ].map(s => (
+              <div key={s.label} style={{ background:'#fff', borderRadius:12, padding:'10px 6px' }}>
+                <div style={{ fontSize:20, fontWeight:800, color:'#5b8def', fontFamily:'Fredoka, sans-serif' }}>{s.value}</div>
+                <div style={{ fontSize:11, color:'#aaa', fontWeight:600 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Badges modal ──────────────────────────────────────────────────────────────
+function BadgesModal({ prog, onClose }) {
+  const earned = new Set(prog.badges || []);
+  const earnedCount = BADGE_DEFS.filter(b => earned.has(b.id)).length;
+
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-box slide-up">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif' }}>🏅 成就徽章</div>
+            <div style={{ fontSize:12, color:'#aaa', fontWeight:600 }}>
+              已獲得 {earnedCount} / {BADGE_DEFS.length} 個
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'#f5f5f5', border:'none', borderRadius:12,
+            width:36, height:36, fontSize:16, cursor:'pointer' }}>✕</button>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {BADGE_DEFS.map(b => {
+            const has = earned.has(b.id);
+            return (
+              <div key={b.id} className={has ? 'badge-pop' : ''} style={{
+                background: has ? 'linear-gradient(135deg,#fff9e6,#fff3c2)' : '#f5f5f5',
+                border: `2px solid ${has ? '#b88a1f' : '#e0e0e0'}`,
+                borderRadius:16, padding:'14px 12px', textAlign:'center',
+                opacity: has ? 1 : 0.5, transition:'opacity .3s',
+              }}>
+                <div style={{ fontSize:32, filter: has ? 'none' : 'grayscale(1)' }}>{b.emoji}</div>
+                <div style={{ fontSize:13, fontWeight:800, color: has ? '#3a2a1a' : '#aaa',
+                  fontFamily:'Fredoka, sans-serif', marginTop:4 }}>{b.name}</div>
+                <div style={{ fontSize:11, color:'#888', marginTop:2, fontWeight:600 }}>{b.desc}</div>
+                {!has && <div style={{ fontSize:10, color:'#ccc', marginTop:4 }}>🔒 尚未解鎖</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Question components ───────────────────────────────────────────────────────
+function ListenQuestion({ q, onAnswer }) {
+  const [choices] = React.useState(() => shuffle(q.choices.map((c,i) => ({ label:c, origIdx:i }))));
+  const [picked, setPicked] = React.useState(null);
+  const [playing, setPlaying] = React.useState(false);
+
+  const play = () => {
+    setPlaying(true);
+    speakEn(q.text, 0.82);
+    setTimeout(() => setPlaying(false), Math.max(1400, q.text.length * 60));
+  };
+  React.useEffect(() => { setTimeout(play, 400); }, []);
+
+  const submit = (idx) => {
+    if (picked !== null) return;
+    const isCorrect = choices[idx].origIdx === q.correct;
+    setPicked(idx); onAnswer(isCorrect, choices[idx].label, q.choices[q.correct]);
+  };
+
+  return (
+    <div className="slide-up">
+      <div style={{ textAlign:'center', marginBottom:20 }}>
+        <div style={{ fontSize:13, fontWeight:800, color:'#888', letterSpacing:1, marginBottom:8 }}>聆聽並選出你聽到的句子</div>
+        <div style={{ fontSize:50, marginBottom:12 }}>{q.emoji}</div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:14, background:'#fff', borderRadius:999,
+          padding:'10px 20px', boxShadow:'0 3px 12px rgba(0,0,0,0.08)', cursor:'pointer' }} onClick={play}>
+          <div style={{ width:44, height:44, borderRadius:'50%', background:playing?'#ef8eb5':'#5b8def',
+            display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s',
+            boxShadow:`inset 0 -3px 0 ${shade(playing?'#ef8eb5':'#5b8def',-22)}` }}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff">
+              <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+              {playing && <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.73 2.5-2.25 2.5-4.03zm2.5 0c0 2.89-1.57 5.43-4 6.83v-2.19c1.29-1.14 2-2.82 2-4.64s-.71-3.5-2-4.64V5.17c2.43 1.4 4 3.94 4 6.83z"/>}
+            </svg>
+          </div>
+          <SoundWave active={playing} color="#5b8def" bars={14}/>
+        </div>
+        <div style={{ fontSize:12, color:'#aaa', marginTop:8 }}>點擊播放音訊 · 可重複播放</div>
+      </div>
+      <div style={{ display:'grid', gap:10 }}>
+        {choices.map((c, i) => {
+          const isCorrect = c.origIdx === q.correct;
+          const isPicked  = picked === i;
+          let bg='#fff', border='2px solid #e0e0e0', clr='#2d3a2e';
+          if (picked !== null) {
+            if (isCorrect) { bg='#e8f8ef'; border='2px solid #3aa56b'; clr='#1a6b40'; }
+            else if (isPicked) { bg='#ffeaea'; border='2px solid #d65a5a'; clr='#a83a3a'; }
+          }
+          return (
+            <button key={i} onClick={() => submit(i)} disabled={picked!==null} style={{
+              background:bg, border, color:clr, borderRadius:16, padding:'14px 18px',
+              fontSize:14, fontWeight:700, textAlign:'left', cursor:picked!==null?'default':'pointer',
+              boxShadow:'0 2px 0 rgba(0,0,0,0.04)', transition:'all .2s',
+              display:'flex', alignItems:'center', gap:10,
+            }}>
+              <span style={{ fontSize:16, fontWeight:800, color:'#ccc', minWidth:20 }}>{String.fromCharCode(65+i)}</span>
+              <span>{c.label}</span>
+              {picked!==null && isCorrect && <span style={{ marginLeft:'auto', color:'#3aa56b', fontSize:18 }}>✓</span>}
+              {picked!==null && isPicked && !isCorrect && <span style={{ marginLeft:'auto', color:'#d65a5a', fontSize:18 }}>✕</span>}
+            </button>
+          );
+        })}
+      </div>
+      {picked !== null && (
+        <div style={{ marginTop:12, padding:'10px 14px', borderRadius:14,
+          background:choices[picked].origIdx===q.correct ? '#e8f8ef' : '#fff3c2',
+          fontSize:13, color:'#555', fontWeight:600 }}>
+          💡 <b style={{color:'#3a2a1a'}}>{q.text}</b> · {q.cn}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhonicsQuestion({ q, onAnswer }) {
+  const [picked, setPicked]   = React.useState(null);
+  const [answered, setAnswered] = React.useState(false);
+  const [choices] = React.useState(() => shuffle(q.choices));
+
+  const submit = (letter) => {
+    if (answered) return;
+    setPicked(letter); setAnswered(true);
+    onAnswer(letter===q.answer, letter, q.answer);
+  };
+
+  return (
+    <div className="slide-up">
+      <div style={{ textAlign:'center', marginBottom:20 }}>
+        <div style={{ fontSize:13, fontWeight:800, color:'#888', letterSpacing:1, marginBottom:8 }}>填入缺少的字母，拼出這個單字</div>
+        <div style={{ fontSize:64, marginBottom:10 }}>{q.emoji}</div>
+        <button onClick={() => speakEn(q.word, 0.7)} style={{ background:'#5b8def', border:'none',
+          borderRadius:999, padding:'8px 18px', color:'#fff', fontSize:13, fontWeight:700,
+          cursor:'pointer', marginBottom:16, boxShadow:`inset 0 -3px 0 ${shade('#5b8def',-22)}` }}>
+          🔊 聽發音
+        </button>
+        <div style={{ display:'flex', gap:10, justifyContent:'center', marginBottom:8 }}>
+          {q.slots.map((s, i) => {
+            const isBlank = s==='_';
+            let bg='#fff', bdr='2px solid #e0e0e0';
+            if (isBlank && picked) {
+              if (answered) { bg=picked===q.answer?'#e8f8ef':'#ffeaea'; bdr=`2px solid ${picked===q.answer?'#3aa56b':'#d65a5a'}`; }
+              else { bg='#fff3c2'; bdr='2px solid #b88a1f'; }
+            } else if (isBlank) { bg='rgba(200,200,255,0.3)'; bdr='2.5px dashed #9b59b6'; }
+            return (
+              <div key={i} style={{ width:64, height:80, borderRadius:16, background:bg, border:bdr,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:44, fontWeight:800, color:'#2d3a2e', fontFamily:'Fredoka, sans-serif',
+                boxShadow:!isBlank?'0 3px 0 rgba(0,0,0,0.08)':'none', transition:'all .2s' }}>
+                {isBlank ? (picked||'') : s}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
+          {q.slots.map((s, i) => (
+            <div key={i} style={{ width:64, textAlign:'center', fontSize:12, color:'#777', fontWeight:700 }}>
+              {slotIPA(s, s==='_' ? picked : null)}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:16 }}>
+        {choices.map(letter => {
+          const isCorrect=letter===q.answer, isPicked=letter===picked;
+          let bg='#fff', clr='#2d3a2e';
+          if (answered) { if (isCorrect){bg='#3aa56b';clr='#fff';} else if(isPicked){bg='#d65a5a';clr='#fff';} else{bg='#f5f5f5';clr='#ccc';} }
+          return (
+            <button key={letter} onClick={() => submit(letter)} disabled={answered}
+              className={!answered?'btn-press':''} style={{
+                width:64, height:64, borderRadius:'50%', background:bg, border:'none',
+                fontSize:28, fontWeight:800, color:clr, cursor:answered?'default':'pointer',
+                boxShadow:'inset 0 -4px 0 rgba(0,0,0,0.1), 0 4px 0 rgba(0,0,0,0.08)',
+                fontFamily:'Fredoka, sans-serif',
+                opacity:answered&&!isCorrect&&!isPicked?0.4:1,
+                transform:isPicked&&answered?'scale(1.1)':'scale(1)', transition:'all .2s',
+              }}>{letter}</button>
+          );
+        })}
+      </div>
+      {answered && (
+        <div style={{ marginTop:16, padding:'10px 14px', borderRadius:14,
+          background:picked===q.answer?'#e8f8ef':'#fff3c2', fontSize:13, fontWeight:600, color:'#555' }}>
+          {picked===q.answer
+            ? `✅ 正確！ "${q.word}" · ${VOWEL_IPA[q.answer]||`/${q.answer}/`}`
+            : `💡 正確答案是 "${q.answer}" · 這個字是 "${q.word}"`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FillQuestion({ q, onAnswer }) {
+  const [choices] = React.useState(() => shuffle(q.choices.map((c,i)=>({label:c,origIdx:i}))));
+  const [picked, setPicked] = React.useState(null);
+
+  const submit = (idx) => {
+    if (picked !== null) return;
+    const label = choices[idx].label;
+    setPicked(idx); onAnswer(label===q.answer, label, q.answer);
+  };
+  const parts = q.sentence.split('___');
+
+  return (
+    <div className="slide-up">
+      <div style={{ textAlign:'center', marginBottom:20 }}>
+        <div style={{ fontSize:13, fontWeight:800, color:'#888', letterSpacing:1, marginBottom:8 }}>選擇正確的單字，填入空格</div>
+        <div style={{ fontSize:52, marginBottom:12 }}>{q.emoji}</div>
+        <div style={{ background:'#fff', borderRadius:18, padding:'16px 20px',
+          fontSize:18, fontWeight:700, lineHeight:1.8, boxShadow:'0 3px 12px rgba(0,0,0,0.07)', marginBottom:4 }}>
+          {parts[0]}
+          <span style={{
+            display:'inline-block', minWidth:80, padding:'2px 12px', margin:'0 4px',
+            borderRadius:10, verticalAlign:'middle',
+            background: picked===null?'rgba(155,89,182,0.1)':(choices[picked].label===q.answer?'#e8f8ef':'#ffeaea'),
+            border:`2px ${picked===null?'dashed':'solid'} ${picked===null?'#9b59b6':(choices[picked].label===q.answer?'#3aa56b':'#d65a5a')}`,
+            color: picked===null?'#9b59b6':(choices[picked].label===q.answer?'#1a6b40':'#a83a3a'),
+            fontWeight:800, fontSize:17, textAlign:'center',
+          }}>{picked===null ? '___' : choices[picked].label}</span>
+          {parts[1]}
+        </div>
+        {q.hint && <div style={{ fontSize:12, color:'#aaa', marginTop:4 }}>提示：{q.hint}</div>}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        {choices.map((c, i) => {
+          const isCorrect=c.label===q.answer, isPicked=picked===i;
+          let bg='#fff', border='2px solid #e8e8e8', clr='#2d3a2e';
+          if (picked!==null) {
+            if (isCorrect){bg='#e8f8ef';border='2px solid #3aa56b';clr='#1a6b40';}
+            else if(isPicked){bg='#ffeaea';border='2px solid #d65a5a';clr='#a83a3a';}
+            else{bg='#fafafa';clr='#aaa';}
+          }
+          return (
+            <button key={i} onClick={() => submit(i)} disabled={picked!==null}
+              className={!picked?'btn-press':''} style={{
+                background:bg, border, color:clr, borderRadius:16, padding:'16px 12px',
+                fontSize:15, fontWeight:800, cursor:picked!==null?'default':'pointer',
+                boxShadow:'0 2px 0 rgba(0,0,0,0.05)', transition:'all .2s',
+                fontFamily:'Fredoka, sans-serif',
+              }}>
+              {c.label}
+              {picked!==null && isCorrect && <span style={{marginLeft:6, fontSize:16}}>✓</span>}
+              {picked!==null && isPicked && !isCorrect && <span style={{marginLeft:6, fontSize:16}}>✕</span>}
+            </button>
+          );
+        })}
+      </div>
+      {picked!==null && choices[picked].label!==q.answer && (
+        <div style={{ marginTop:12, padding:'10px 14px', borderRadius:14, background:'#fff3c2',
+          fontSize:13, fontWeight:700, color:'#5a4a3a' }}>
+          💡 正確答案：<b style={{color:'#b88a1f'}}>{q.answer}</b>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrderQuestion({ q, onAnswer }) {
+  const [tiles]    = React.useState(() => shuffle(q.words.map((w,i)=>({word:w,id:i}))));
+  const [selected, setSelected] = React.useState([]);
+  const [answered, setAnswered] = React.useState(false);
+  const [correct,  setCorrect]  = React.useState(false);
+
+  const remaining = tiles.filter(t => !selected.includes(t.id));
+  const sentence  = selected.map(id => tiles.find(t=>t.id===id).word).join(' ');
+
+  const check = () => {
+    const norm = sentence.toLowerCase().replace(/[?!,]/g,'').trim();
+    const exp  = q.answer.toLowerCase().replace(/[?!,]/g,'').trim();
+    const ok = norm===exp;
+    setCorrect(ok); setAnswered(true);
+    onAnswer(ok, sentence, q.answer);
+  };
+
+  return (
+    <div className="slide-up">
+      <div style={{ fontSize:13, fontWeight:800, color:'#888', letterSpacing:1, marginBottom:8, textAlign:'center' }}>
+        點擊單字，排列成正確的句子 {q.emoji}
+      </div>
+      <div style={{ minHeight:72, background:'#fff', borderRadius:16, padding:'12px 14px',
+        border: answered ? `2px solid ${correct?'#3aa56b':'#d65a5a'}` : '2px dashed #9b59b6',
+        boxShadow:'0 2px 8px rgba(0,0,0,0.06)', marginBottom:10,
+        display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
+        {selected.length===0 && <span style={{color:'#ccc',fontSize:13,fontWeight:600}}>點下方單字開始排列…</span>}
+        {selected.map(id => {
+          const t = tiles.find(t=>t.id===id);
+          return (
+            <button key={id} onClick={() => !answered && setSelected(s=>s.filter(x=>x!==id))} disabled={answered}
+              style={{ background:'#9b59b6', color:'#fff', border:'none', borderRadius:10, padding:'6px 12px',
+                fontSize:15, fontWeight:700, cursor:answered?'default':'pointer',
+                boxShadow:`inset 0 -2px 0 ${shade('#9b59b6',-22)}` }}>{t.word}</button>
+          );
+        })}
+      </div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center', minHeight:52, marginBottom:12 }}>
+        {remaining.map(t => (
+          <button key={t.id} onClick={() => !answered && setSelected(s=>[...s,t.id])} disabled={answered}
+            className="btn-press" style={{ background:'#f0f4ff', color:'#2d3a2e', border:'2px solid #c8d4f8',
+              borderRadius:10, padding:'8px 14px', fontSize:15, fontWeight:700,
+              cursor:'pointer', boxShadow:'0 2px 0 rgba(0,0,0,0.06)' }}>{t.word}</button>
+        ))}
+      </div>
+      {!answered && (
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={() => setSelected([])} style={{ flex:1, background:'#f5f5f5', border:'2px solid #e0e0e0',
+            borderRadius:14, padding:'12px', fontSize:14, fontWeight:700, cursor:'pointer', color:'#888' }}>↺ 重置</button>
+          <BigButton onClick={check} disabled={selected.length<tiles.length} color='#9b59b6' style={{flex:2}}>
+            ✓ 確認答案
+          </BigButton>
+        </div>
+      )}
+      {answered && (
+        <div style={{ padding:'12px 14px', borderRadius:14, marginTop:8,
+          background:correct?'#e8f8ef':'#fff3c2', fontSize:13, fontWeight:700, color:'#555' }}>
+          {correct ? '✅ 排列正確！'
+            : <span>💡 正確句子：<br/><b style={{color:'#b88a1f',fontSize:14}}>{q.answer}</b></span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Quiz screen ───────────────────────────────────────────────────────────────
+function QuizScreen({ questions, difficulty, onFinish }) {
+  const diff = QB[difficulty];
+  const [current,  setCurrent]  = React.useState(0);
+  const [results,  setResults]  = React.useState([]);
+  const [feedback, setFeedback] = React.useState(null);
+  const [xpFloats, setXpFloats] = React.useState([]);
+
+  const q       = questions[current];
+  const correct = results.filter(Boolean).length;
+
+  const handleAnswer = (isCorrect) => {
+    setResults(r => [...r, isCorrect]);
+    setFeedback({ isCorrect });
+    if (isCorrect) {
+      const id = Date.now();
+      const xp = DIFF_XP[difficulty];
+      setXpFloats(f => [...f, { id, xp }]);
+      setTimeout(() => setXpFloats(f => f.filter(x => x.id !== id)), 1200);
+    }
+  };
+
+  const next = () => {
+    setFeedback(null);
+    if (current + 1 >= questions.length) onFinish([...results, ...(feedback ? [] : [])]);
+    else setCurrent(c => c+1);
+  };
+
+  const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句' };
+
+  return (
+    <div style={{ maxWidth:600, margin:'0 auto', padding:'20px 16px', position:'relative' }}>
+      {/* Floating XP */}
+      {xpFloats.map(f => (
+        <div key={f.id} className="xp-pop" style={{
+          position:'fixed', top:'38%', left:'50%', transform:'translateX(-50%)',
+          fontSize:22, fontWeight:800, color:'#3aa56b', fontFamily:'Fredoka, sans-serif',
+          pointerEvents:'none', zIndex:100, textShadow:'0 2px 8px rgba(0,0,0,0.15)',
+        }}>+{f.xp} XP ⚡</div>
+      ))}
+
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+        <span style={{ fontSize:22 }}>{diff.emoji}</span>
+        <span style={{ fontSize:13, fontWeight:800, color:diff.color, letterSpacing:1 }}>
+          {diff.label.toUpperCase()}
+        </span>
+        <div style={{ marginLeft:'auto', fontSize:12, fontWeight:700, color:'#aaa',
+          background:'#fff', borderRadius:999, padding:'4px 10px', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }}>
+          {qLabel[q.type]}
+        </div>
+      </div>
+
+      {/* Progress */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
+        <div style={{ flex:1, height:12, borderRadius:999, background:'rgba(0,0,0,0.08)', overflow:'hidden' }}>
+          <div style={{ height:'100%', width:`${(current/questions.length)*100}%`,
+            background:`linear-gradient(90deg, ${shade(diff.color,10)}, ${diff.color})`,
+            borderRadius:999, transition:'width .4s' }}/>
+        </div>
+        <div style={{ fontSize:13, fontWeight:800, color:'#666', whiteSpace:'nowrap' }}>{current}/{questions.length}</div>
+        <div style={{ fontSize:13, fontWeight:800, color:'#3aa56b', whiteSpace:'nowrap' }}>✓ {correct}</div>
+      </div>
+
+      <div style={{ background:'#fff', borderRadius:24, padding:'24px 20px', boxShadow:'0 4px 24px rgba(0,0,0,0.07)' }}>
+        {q.type==='listen'  && <ListenQuestion  key={current} q={q} onAnswer={handleAnswer}/>}
+        {q.type==='phonics' && <PhonicsQuestion key={current} q={q} onAnswer={handleAnswer}/>}
+        {q.type==='fill'    && <FillQuestion    key={current} q={q} onAnswer={handleAnswer}/>}
+        {q.type==='order'   && <OrderQuestion   key={current} q={q} onAnswer={handleAnswer}/>}
+
+        {feedback && (
+          <div className="slide-up" style={{
+            marginTop:16, borderRadius:18, padding:'14px 16px',
+            background: feedback.isCorrect ? '#3aa56b' : '#d65a5a',
+            boxShadow:`inset 0 -5px 0 ${shade(feedback.isCorrect?'#3aa56b':'#d65a5a',-22)}`,
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap:12,
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{fontSize:28}}>{feedback.isCorrect ? '🎉' : '🤔'}</span>
+              <div>
+                <div style={{ color:'#fff', fontWeight:800, fontSize:15, fontFamily:'Fredoka, sans-serif' }}>
+                  {feedback.isCorrect ? '答對了！太棒了！' : '答錯了，繼續加油！'}
+                </div>
+                {feedback.isCorrect && (
+                  <div style={{ color:'rgba(255,255,255,0.85)', fontSize:12, fontWeight:600 }}>
+                    +{DIFF_XP[difficulty]} XP
+                  </div>
+                )}
+              </div>
+            </div>
+            <button onClick={next} style={{ background:'rgba(255,255,255,0.25)',
+              border:'2px solid rgba(255,255,255,0.4)', color:'#fff', borderRadius:14,
+              padding:'8px 16px', fontSize:14, fontWeight:800, cursor:'pointer',
+              whiteSpace:'nowrap', fontFamily:'Fredoka, sans-serif' }}>
+              {current+1 >= questions.length ? '看結果 →' : '下一題 →'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Results screen ────────────────────────────────────────────────────────────
+function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, onRetry }) {
+  const diff    = QB[difficulty];
+  const correct = results.filter(Boolean).length;
+  const total   = results.length;
+  const pct     = Math.round((correct/total)*100);
+  const stars   = pct>=90?3:pct>=70?2:pct>=50?1:0;
+  const msgs    = ['繼續練習，你能做到！','不錯！繼續加油！','很好！快接近完美了！','完美！你太厲害了！'];
+
+  const { xpGained, bonusXP, streakBonus, streak, newBadges, leveledUp, newLv,
+          newlyCompletedTasks, p: newProg } = sessionResult;
+
+  React.useEffect(() => {
+    if (stars >= 2) speakEn('Excellent! Well done!', 0.9);
+  }, []);
+
+  return (
+    <div style={{ maxWidth:560, margin:'0 auto', padding:'24px 16px', textAlign:'center' }} className="slide-up">
+
+      {/* Level up banner */}
+      {leveledUp && (
+        <div className="lvl-up" style={{
+          background:'linear-gradient(135deg,#ffd45e,#ff8a3d)', borderRadius:20, padding:'16px 20px',
+          marginBottom:16, boxShadow:'0 6px 24px rgba(255,138,61,0.4)',
+        }}>
+          <div style={{ fontSize:32 }}>🎊</div>
+          <div style={{ fontSize:22, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#fff', marginTop:4 }}>
+            升級了！等級 {newLv}
+          </div>
+          <div style={{ fontSize:14, color:'rgba(255,255,255,0.9)', fontWeight:600 }}>
+            {LEVEL_TITLES[newLv-1]} — 繼續加油！
+          </div>
+        </div>
+      )}
+
+      <div className="bobble" style={{ display:'inline-block', marginBottom:4 }}>
+        <Pip size={80} pose={stars>=2?'cheer':'wave'}/>
+      </div>
+      <div style={{ fontSize:36, margin:'6px 0' }}>{['😢','😊','😄','🌟'][stars]}</div>
+      <h2 style={{ fontSize:26, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#2d3a2e', marginBottom:4 }}>
+        {msgs[stars]}
+      </h2>
+
+      {/* Score card */}
+      <div style={{ background:'#fff', borderRadius:24, padding:20,
+        boxShadow:'0 4px 24px rgba(0,0,0,0.07)', margin:'16px 0' }}>
+        <div style={{ fontSize:52, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:diff.color }}>{pct}%</div>
+        <div style={{ fontSize:14, color:'#888', fontWeight:700, marginBottom:12 }}>答對 {correct} / {total} 題</div>
+
+        <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:14 }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{ fontSize:32, opacity:i<stars?1:0.2, transition:`opacity .3s ${i*0.15}s` }}>⭐</div>
+          ))}
+        </div>
+
+        {/* Question breakdown */}
+        <div style={{ display:'flex', justifyContent:'center', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+          {results.map((ok,i) => (
+            <div key={i} style={{ width:34, height:34, borderRadius:10, fontSize:14,
+              background:ok?'#e8f8ef':'#ffeaea', border:`2px solid ${ok?'#3aa56b':'#d65a5a'}`,
+              display:'flex', alignItems:'center', justifyContent:'center' }}>{ok?'✓':'✕'}</div>
+          ))}
+        </div>
+
+        {/* XP breakdown */}
+        <div style={{ background:'linear-gradient(135deg,#fff9e6,#fff3c2)', borderRadius:16,
+          padding:'12px 16px', marginBottom:14, border:'2px solid #f0d070' }}>
+          <div style={{ fontSize:13, fontWeight:800, color:'#b88a1f', marginBottom:8 }}>⚡ 本場 XP 獲得</div>
+          <div style={{ display:'grid', gap:4 }}>
+            {[
+              { label:`答對 ${correct} 題`, value: correct * DIFF_XP[difficulty], show: correct > 0 },
+              { label:'場次加成', value: bonusXP, show: bonusXP > 0 },
+              { label:`連勝加成 (最長 ${streak} 題)`, value: streakBonus, show: streakBonus > 0 },
+              ...newlyCompletedTasks.map(t => ({ label:`任務完成：${t.name}`, value: t.reward, show: true })),
+            ].filter(r => r.show).map((row, i) => (
+              <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:13, fontWeight:700 }}>
+                <span style={{ color:'#777' }}>{row.label}</span>
+                <span style={{ color:'#b88a1f' }}>+{row.value} XP</span>
+              </div>
+            ))}
+            <div style={{ borderTop:'1px solid #f0d070', paddingTop:6, marginTop:4,
+              display:'flex', justifyContent:'space-between', fontSize:16, fontWeight:800 }}>
+              <span style={{ color:'#3a2a1a' }}>合計</span>
+              <span style={{ color:'#b88a1f' }}>+{xpGained} XP 🎉</span>
+            </div>
+          </div>
+        </div>
+
+        {/* XP bar */}
+        <div style={{ marginBottom:14 }}>
+          <XPBar xp={newProg.xp} color={diff.color}/>
+        </div>
+
+        {/* New badges */}
+        {newBadges.length > 0 && (
+          <div style={{ background:'linear-gradient(135deg,#fff3e0,#ffe0b2)', borderRadius:16,
+            padding:'12px 16px', marginBottom:14, border:'2px solid #ffb74d' }}>
+            <div style={{ fontSize:13, fontWeight:800, color:'#e65100', marginBottom:8 }}>🏅 新解鎖成就！</div>
+            <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
+              {newBadges.map(b => (
+                <div key={b.id} className="badge-pop" style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:32 }}>{b.emoji}</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#3a2a1a' }}>{b.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Completed tasks */}
+        {newlyCompletedTasks.length > 0 && (
+          <div style={{ background:'#e8f8ef', borderRadius:16, padding:'10px 14px', marginBottom:14,
+            border:'2px solid #3aa56b', textAlign:'left' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'#1a6b40', marginBottom:4 }}>📋 任務完成</div>
+            {newlyCompletedTasks.map(t => (
+              <div key={t.id} style={{ fontSize:13, fontWeight:700, color:'#2d3a2e', display:'flex', gap:6 }}>
+                <span>{t.emoji}</span>
+                <span>{t.name} — <b style={{color:'#3aa56b'}}>+{t.reward} XP</b></span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap', justifyContent:'center' }}>
+          <BigButton onClick={onRetry} color={diff.color}>🔄 再練一次</BigButton>
+          <BigButton onClick={onHome} style={{ background:'#fff', color:'#5a4a3a',
+            boxShadow:'0 2px 0 rgba(0,0,0,0.1)', border:'2px solid #e0e0e0' }}>
+            🏠 選難度
+          </BigButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Home screen ───────────────────────────────────────────────────────────────
+function HomeScreen({ prog, onStart, onShowTasks, onShowBadges }) {
+  const [count, setCount] = React.useState(10);
+  const p = ensureDaily(prog);
+  const lv = getLevel(p.xp);
+  const daily = p.daily;
+  const todayTasks = TASK_POOL.filter(t => daily.taskIds.includes(t.id));
+  const doneTasks  = todayTasks.filter(t => daily.done.includes(t.id)).length;
+
+  return (
+    <div style={{ maxWidth:560, margin:'0 auto', padding:'20px 16px' }}>
+
+      {/* Header */}
+      <div style={{ textAlign:'center', marginBottom:18 }}>
+        <div className="bobble" style={{ display:'inline-block' }}>
+          <Pip size={72} pose="cheer"/>
+        </div>
+        <h1 style={{ fontSize:28, fontWeight:800, fontFamily:'Fredoka, sans-serif',
+          color:'#2d3a2e', margin:'6px 0 2px' }}>Pip's English Practice</h1>
+        <p style={{ color:'#888', fontSize:13, fontWeight:600 }}>選擇難度，開始練習！每次題目都不一樣 🎲</p>
+      </div>
+
+      {/* Profile card */}
+      <div style={{ background:'#fff', borderRadius:20, padding:'16px 18px',
+        boxShadow:'0 3px 14px rgba(0,0,0,0.07)', marginBottom:12 }}>
+        <XPBar xp={p.xp} color='#5b8def'/>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:12 }}>
+          {[
+            { icon:'🎯', val: p.totalCorrect, label:'累計答對' },
+            { icon:'🔥', val: p.maxStreak,    label:'最長連勝' },
+            { icon:'🎓', val: p.totalSessions, label:'完成場次' },
+          ].map(s => (
+            <div key={s.label} style={{ background:'#f8f9ff', borderRadius:12, padding:'10px 6px', textAlign:'center' }}>
+              <div style={{ fontSize:11, marginBottom:2 }}>{s.icon}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:'#5b8def', fontFamily:'Fredoka, sans-serif' }}>{s.val}</div>
+              <div style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Task & Badge buttons */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
+        <button onClick={onShowTasks} className="btn-press" style={{
+          background:'#fff', borderRadius:16, padding:'12px 14px', border:'2px solid #e8f0ff',
+          display:'flex', alignItems:'center', gap:10, boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+          cursor:'pointer',
+        }}>
+          <span style={{ fontSize:24 }}>📋</span>
+          <div style={{ textAlign:'left' }}>
+            <div style={{ fontSize:13, fontWeight:800, color:'#2d3a2e' }}>每日任務</div>
+            <div style={{ fontSize:11, fontWeight:600, color: doneTasks===3 ? '#3aa56b' : '#aaa' }}>
+              {doneTasks}/3 完成{doneTasks===3?' 🎉':''}
+            </div>
+          </div>
+        </button>
+        <button onClick={onShowBadges} className="btn-press" style={{
+          background:'#fff', borderRadius:16, padding:'12px 14px', border:'2px solid #fff3c2',
+          display:'flex', alignItems:'center', gap:10, boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+          cursor:'pointer',
+        }}>
+          <span style={{ fontSize:24 }}>🏅</span>
+          <div style={{ textAlign:'left' }}>
+            <div style={{ fontSize:13, fontWeight:800, color:'#2d3a2e' }}>成就徽章</div>
+            <div style={{ fontSize:11, fontWeight:600, color:'#aaa' }}>
+              {(prog.badges||[]).length}/{BADGE_DEFS.length} 解鎖
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Count selector */}
+      <div style={{ background:'#fff', borderRadius:18, padding:'14px 18px',
+        boxShadow:'0 3px 14px rgba(0,0,0,0.07)', marginBottom:12, textAlign:'center' }}>
+        <div style={{ fontSize:12, fontWeight:800, color:'#888', letterSpacing:1, marginBottom:10 }}>每次練習幾題？</div>
+        <div style={{ display:'flex', justifyContent:'center', gap:10 }}>
+          {[5, 10, 15].map(n => (
+            <button key={n} onClick={() => setCount(n)} style={{
+              width:56, height:44, borderRadius:12, border:'none',
+              background: count===n ? '#5b8def' : '#f0f4ff',
+              color: count===n ? '#fff' : '#5b8def',
+              fontSize:17, fontWeight:800, cursor:'pointer',
+              boxShadow: count===n ? `inset 0 -3px 0 ${shade('#5b8def',-22)}` : 'none',
+              fontFamily:'Fredoka, sans-serif', transition:'all .15s',
+            }}>{n}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Difficulty cards */}
+      <div style={{ display:'grid', gap:10 }}>
+        {Object.entries(QB).map(([key, d]) => {
+          const sessions = prog.diffStats?.[key] || 0;
+          return (
+            <button key={key} onClick={() => onStart(key, count)}
+              className="btn-press" style={{
+                background:d.bg, border:`2px solid ${shade(d.color,20)}`,
+                borderRadius:18, padding:'14px 18px', textAlign:'left', cursor:'pointer',
+                boxShadow:`0 4px 0 ${shade(d.color,-10)}`,
+                display:'flex', alignItems:'center', gap:14,
+              }}>
+              <div style={{ fontSize:36 }}>{d.emoji}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:17, fontWeight:800, color:d.color, fontFamily:'Fredoka, sans-serif' }}>{d.label}</div>
+                <div style={{ fontSize:11, color:'#777', fontWeight:600, marginTop:1 }}>{d.desc}</div>
+                {sessions > 0 && <div style={{ fontSize:10, color:d.color, fontWeight:700, marginTop:3, opacity:0.8 }}>
+                  已完成 {sessions} 場
+                </div>}
+              </div>
+              <div style={{ fontSize:16 }}>{'⭐'.repeat(d.stars)}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ textAlign:'center', marginTop:18, fontSize:11, color:'#bbb', fontWeight:600 }}>
+        👂 聆聽 · 🔤 拼音 · 📝 填空 · 🔀 排句 — 四種題型混合出題
+      </div>
+    </div>
+  );
+}
+
+// ── Login screen ─────────────────────────────────────────────────────────────
+function LoginScreen() {
+  const [loading, setLoading] = React.useState(false);
+  const login = async () => {
+    setLoading(true);
+    await sb.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: window.location.href }
+    });
+  };
+  return (
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:24, padding:24 }}>
+      <div className="bobble"><Pip size={110} pose="wave"/></div>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ fontSize:28, fontWeight:800, fontFamily:'Fredoka', color:'#2d3a2e' }}>Pip's English Practice</div>
+        <div style={{ fontSize:14, color:'#5a6a5e', marginTop:6 }}>登入後即可跨裝置同步學習進度</div>
+      </div>
+      <button onClick={login} disabled={loading} className="btn-press" style={{
+        display:'flex', alignItems:'center', gap:12, padding:'14px 28px',
+        background: loading ? '#ccc' : '#24292e', color:'#fff',
+        border:'none', borderRadius:16, fontSize:16, fontWeight:700,
+        boxShadow: loading ? 'none' : '0 4px 0 #000', cursor: loading ? 'default' : 'pointer',
+      }}>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        {loading ? '登入中…' : '用 GitHub 帳號登入'}
+      </button>
+    </div>
+  );
+}
+
+// ── App root ──────────────────────────────────────────────────────────────────
+function App() {
+  const [screen,       setScreen]       = React.useState('home');
+  const [difficulty,   setDifficulty]   = React.useState(null);
+  const [questions,    setQuestions]    = React.useState([]);
+  const [results,      setResults]      = React.useState([]);
+  const [sessionResult,setSessionResult]= React.useState(null);
+  const [prog,         setProg]         = React.useState(() => ensureDaily(loadProg()));
+  const [showTasks,    setShowTasks]    = React.useState(false);
+  const [showBadges,   setShowBadges]   = React.useState(false);
+  const [user,         setUser]         = React.useState(null);
+  const [authLoading,  setAuthLoading]  = React.useState(true);
+
+  React.useEffect(() => {
+    sb.auth.getSession().then(({ data: { session } }) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        loadProgFromDB(u.id).then(p => {
+          if (p) setProg(ensureDaily(p));
+        });
+      }
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        loadProgFromDB(u.id).then(p => {
+          if (p) setProg(ensureDaily(p));
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const startQuiz = (diff, count) => {
+    const bank   = QB[diff].questions;
+    const picked = shuffle(bank).slice(0, Math.min(count, bank.length));
+    setDifficulty(diff);
+    setQuestions(picked);
+    setResults([]);
+    setSessionResult(null);
+    setScreen('quiz');
+  };
+
+  const finishQuiz = (res) => {
+    const sr = processSession({ prog, results:res, difficulty, questions });
+    setProg(sr.p);
+    setResults(res);
+    setSessionResult(sr);
+    setScreen('results');
+    if (user) saveProgToDB(user.id, sr.p);
+  };
+
+  const retry = () => startQuiz(difficulty, questions.length);
+
+  if (authLoading) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div className="bobble"><Pip size={80} pose="idle"/></div>
+    </div>
+  );
+
+  if (!user) return <LoginScreen />;
+
+  return (
+    <div>
+      {/* 登出按鈕 */}
+      <div style={{ position:'fixed', top:12, right:16, zIndex:500 }}>
+        <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
+          display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
+          background:'rgba(255,255,255,0.85)', backdropFilter:'blur(8px)',
+          border:'1.5px solid #e0e0e0', borderRadius:10,
+          fontSize:12, fontWeight:700, color:'#5a6a5e', cursor:'pointer',
+        }}>
+          {user.user_metadata?.avatar_url && (
+            <img src={user.user_metadata.avatar_url} style={{ width:20, height:20, borderRadius:'50%' }} />
+          )}
+          登出
+        </button>
+      </div>
+      {screen === 'home' && (
+        <HomeScreen prog={prog} onStart={startQuiz}
+          onShowTasks={() => setShowTasks(true)}
+          onShowBadges={() => setShowBadges(true)}/>
+      )}
+      {screen === 'quiz' && (
+        <QuizScreen
+          key={questions.map(q=>q.text||q.word||q.sentence||'').join()}
+          questions={questions} difficulty={difficulty} onFinish={finishQuiz}/>
+      )}
+      {screen === 'results' && sessionResult && (
+        <ResultsScreen results={results} difficulty={difficulty} questions={questions}
+          sessionResult={sessionResult}
+          onHome={() => setScreen('home')} onRetry={retry}/>
+      )}
+      {showTasks  && <TasksModal  prog={prog} onClose={() => setShowTasks(false)}/>}
+      {showBadges && <BadgesModal prog={prog} onClose={() => setShowBadges(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
