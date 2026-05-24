@@ -1200,12 +1200,6 @@ function LeaderboardModal({ prog, user, onClose }) {
           <div style={{ textAlign:'center', padding:24, color:'#64748B' }}>載入中...</div>
         ) : (
           <div>
-            {rows.length <= 1 && (
-              <div style={{ background:'#1c1000', border:'2px solid #F59E0B44', borderRadius:8,
-                padding:'10px 14px', marginBottom:12, fontSize:12, color:'#94A3B8', fontWeight:400 }}>
-                ⚠️ 目前只顯示您自己的資料。排行榜完整功能需在 Supabase 後台開啟 user_progress 的公開讀取政策後才會顯示所有玩家。
-              </div>
-            )}
           <div style={{ display:'grid', gap:6 }}>
             {rows.map(row => {
               const isMe = row.user_id === user?.id;
@@ -2077,7 +2071,7 @@ function LoginScreen() {
   const [userCount, setUserCount] = React.useState(null);
 
   React.useEffect(() => {
-    sb.from('site_stats').select('value').eq('key', 'user_count').single()
+    sb.from('site_stats').select('value').eq('key', 'visitor_count').single()
       .then(({ data }) => { if (data) setUserCount(data.value); });
   }, []);
 
@@ -2112,7 +2106,7 @@ function LoginScreen() {
             background:'#1E293B', border:'2px solid #10B981', borderRadius:8,
             padding:'5px 14px', fontSize:13, fontWeight:600, color:'#10B981',
             boxShadow:'0 0 12px rgba(16,185,129,0.3)' }}>
-            🟢 已有 <b style={{ fontWeight:800 }}>{userCount}</b> 位玩家加入
+            👁️ 已有 <b style={{ fontWeight:800 }}>{userCount}</b> 人來訪過
           </div>
         )}
         <div style={{ fontSize:12, color:'#64748B', fontWeight:400, letterSpacing:0.5 }}>登入後可跨裝置同步學習進度</div>
@@ -2207,6 +2201,11 @@ function App() {
       }
     });
     return () => subscription.unsubscribe();
+  }, []);
+
+  // 每次有人開網頁就+1（不管有沒有登入）
+  React.useEffect(() => {
+    sb.rpc('increment_visitor_count').catch(() => {});
   }, []);
 
   const startQuiz = (diff, count) => {
