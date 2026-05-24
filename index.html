@@ -1198,6 +1198,13 @@ function LeaderboardModal({ prog, user, onClose }) {
         {loading ? (
           <div style={{ textAlign:'center', padding:24, color:'#64748B' }}>載入中...</div>
         ) : (
+          <div>
+            {rows.length <= 1 && (
+              <div style={{ background:'#1c1000', border:'2px solid #F59E0B44', borderRadius:8,
+                padding:'10px 14px', marginBottom:12, fontSize:12, color:'#94A3B8', fontWeight:400 }}>
+                ⚠️ 目前只顯示您自己的資料。排行榜完整功能需在 Supabase 後台開啟 user_progress 的公開讀取政策後才會顯示所有玩家。
+              </div>
+            )}
           <div style={{ display:'grid', gap:6 }}>
             {rows.map(row => {
               const isMe = row.user_id === user?.id;
@@ -1234,6 +1241,7 @@ function LeaderboardModal({ prog, user, onClose }) {
             {rows.length === 0 && (
               <div style={{ textAlign:'center', padding:20, color:'#475569' }}>暫無數據</div>
             )}
+          </div>
           </div>
         )}
       </div>
