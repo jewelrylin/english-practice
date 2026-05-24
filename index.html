@@ -2205,7 +2205,7 @@ function App() {
 
   // 每次有人開網頁就+1（不管有沒有登入）
   React.useEffect(() => {
-    sb.rpc('increment_visitor_count').catch(() => {});
+    (async () => { try { await sb.rpc('increment_visitor_count'); } catch(e) {} })();
   }, []);
 
   const startQuiz = (diff, count) => {
