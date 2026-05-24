@@ -11,8 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    /* ── Roblox Theme ─────────────────────────────────── */
     :root {
       --bg:      #0F1A2E;
       --card:    #1E293B;
@@ -39,11 +37,8 @@
       color: var(--text);
     }
     button { font-family: inherit; cursor: pointer; }
-    /* 減少過度粗體：說明文字、提示文字保持正常粗細 */
     .rb-hint { font-weight: 400; color: var(--sub); font-size: 13px; }
     .rb-label { font-weight: 600; }
-
-    /* ── Animations ────────────────────────────────────── */
     @keyframes slideUp  { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
     @keyframes bobble   { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
     @keyframes wavebar  { 0%,100% { height:30%; } 50% { height:90%; } }
@@ -59,37 +54,28 @@
     @keyframes shimmer  { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
     @keyframes neonPulse { 0%,100%{ box-shadow:0 0 8px currentColor; } 50%{ box-shadow:0 0 22px currentColor; } }
     @keyframes floatUp  { from{opacity:1;transform:translateY(0);} to{opacity:0;transform:translateY(-60px);} }
-
     .slide-up   { animation: slideUp .35s ease-out; }
     .bobble     { animation: bobble 2.4s ease-in-out infinite; }
     .wave-bar   { animation: wavebar 0.8s ease-in-out infinite; }
     .xp-pop     { animation: xpPop 1.2s ease-out forwards; }
     .badge-pop  { animation: badgePop .5s ease-out; }
     .lvl-up     { animation: lvlUp .5s ease-out; }
-
-    /* ── Roblox button style ───────────────────────────── */
     .btn-press {
       transition: transform .08s, box-shadow .08s;
       border: 3px solid #000 !important;
       border-radius: 8px !important;
     }
     .btn-press:active { transform: translateY(4px) !important; box-shadow: none !important; }
-
-    /* ── Roblox card ───────────────────────────────────── */
     .rb-card {
       background: var(--card);
       border: 3px solid var(--border);
       border-radius: 12px;
     }
-
-    /* ── Modal ─────────────────────────────────────────── */
     .modal-bg  { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
                  z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
     .modal-box { background:var(--card); border:3px solid var(--border); border-radius:16px;
                  width:100%; max-width:500px; max-height:85vh;
                  overflow-y:auto; padding:24px 20px; box-shadow:0 24px 64px rgba(0,0,0,0.6); }
-
-    /* ── Input ─────────────────────────────────────────── */
     .rb-input {
       width:100%; padding:12px 14px; border-radius:8px; font-size:15px;
       background:#0F1A2E; color:#F8FAFC; font-family:'Fredoka',sans-serif; font-weight:600;
@@ -97,13 +83,9 @@
     }
     .rb-input:focus { border-color: var(--blue); }
     .rb-input::placeholder { color: var(--sub); }
-
-    /* ── Scrollbar ─────────────────────────────────────── */
     ::-webkit-scrollbar { width:6px; }
     ::-webkit-scrollbar-track { background:#0F1A2E; }
     ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-
-    /* ── XP bar ────────────────────────────────────────── */
     .xp-track { background:#0F1A2E; border:2px solid var(--border); border-radius:6px; overflow:hidden; height:16px; }
     .xp-fill  { height:100%; background:linear-gradient(90deg,#3B82F6,#8B5CF6); border-radius:4px; transition:width .6s; }
   </style>
@@ -112,7 +94,7 @@
 <div id="root"></div>
 <script type="text/babel">
 
-// ── Supabase ──────────────────────────────────────────────────────────────────
+
 const SUPABASE_URL = 'https://qxhnslnsplkhcieebrcc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable__-Gh98OyO_R9i6xQpa-sHQ_42lHAIah';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -122,22 +104,17 @@ async function loadProgFromDB(userId) {
   return data?.progress || null;
 }
 async function saveProgToDB(userId, prog) {
-  // 檢查是否為新用戶（尚無記錄）
   const { data: existing } = await sb.from('user_progress')
     .select('user_id').eq('user_id', userId).maybeSingle();
-
   await sb.from('user_progress').upsert(
     { user_id: userId, progress: prog, updated_at: new Date().toISOString() },
     { onConflict: 'user_id' }
   );
-
-  // 新用戶第一次存檔 → 計數 +1
   if (!existing) {
     await sb.rpc('increment_user_count');
   }
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
 function shade(hex, pct) {
   const n = parseInt(hex.replace('#',''), 16);
@@ -153,22 +130,40 @@ function speakEn(text, rate=0.85) {
 }
 const todayStr = () => new Date().toISOString().slice(0,10);
 
-// ── Progress / Storage ────────────────────────────────────────────────────────
 const STORE_KEY = 'pip_english_v1';
 
-const LEVELS = [0, 80, 200, 400, 700, 1100, 1700, 2500, 3600, 5000];
-const LEVEL_TITLES = ['初學者','入門者','學習者','中級生','進階者','熟練者','高手','達人','專家','大師'];
+// 50-level system: L1->L2 costs 100, L2->L3 costs 200 ... L(n)->L(n+1) costs n*100
+const LEVELS = (() => {
+  const arr = [0];
+  for (let i = 1; i < 50; i++) arr.push(arr[i-1] + i * 100);
+  return arr;
+})();
+
+const LEVEL_TITLES = [
+  '初學者','入門者','學習者','初級生','中級生',
+  '進階生','熟練者','準高手','高手','資深高手',
+  '達人','學習達人','知識達人','英語達人','語言達人',
+  '專家','英語專家','資深專家','準大師','大師',
+  '英語大師','Super Star','Legend','Epic Hero','Champion',
+  'Word Wizard','Grammar Guru','Sentence Master','Story Teller','Book Worm',
+  'Vocab King','Fluent Speaker','Language Pro','Elite Learner','Scholar',
+  'Linguist','Polyglot','Ace Student','Honor Roll','Dean's List',
+  'Distinguished','Brilliant','Exceptional','Outstanding','Extraordinary',
+  'Supreme','Legendary','Mythic','Transcendent','English Master'
+];
+
 const DIFF_XP = { easy:5, medium:10, hard:15, expert:25 };
 
 function getLevel(xp) {
   let lv = 1;
   for (let i = 1; i < LEVELS.length; i++) { if (xp >= LEVELS[i]) lv = i+1; else break; }
-  return Math.min(lv, 10);
+  return Math.min(lv, 50);
 }
 function nextLevelXP(xp) {
   const lv = getLevel(xp);
-  return lv >= 10 ? null : LEVELS[lv];
+  return lv >= 50 ? null : LEVELS[lv];
 }
+
 
 const BADGE_DEFS = [
   { id:'first',      emoji:'🐣', name:'新手上路',   desc:'答對第一題',              check: p => p.totalCorrect >= 1 },
@@ -195,59 +190,98 @@ const TASK_POOL = [
   { id:'listen3', emoji:'👂', name:'聆聽練習',  desc:'答對 3 題聆聽題',    key:'listenOk', target:3,  reward:20 },
 ];
 
-// ── Cosmetics System ──────────────────────────────────────────────────────────
+
 const COSMETIC_ITEMS = {
   hair: [
-    { id:'hair_black_m', name:'黑色短髮', gender:'male',   level:1, color:'#1C1C1C' },
-    { id:'hair_black_f', name:'黑色長髮', gender:'female', level:1, color:'#1C1C1C' },
-    { id:'hair_brown_m', name:'棕色短髮', gender:'male',   level:2, color:'#7C4A1E' },
-    { id:'hair_brown_f', name:'棕色長髮', gender:'female', level:2, color:'#7C4A1E' },
-    { id:'hair_blue_m',  name:'藍色短髮', gender:'male',   level:4, color:'#3B82F6' },
-    { id:'hair_blue_f',  name:'藍色長髮', gender:'female', level:4, color:'#3B82F6' },
-    { id:'hair_gold_m',  name:'金色短髮', gender:'male',   level:5, color:'#F59E0B' },
-    { id:'hair_gold_f',  name:'金色長髮', gender:'female', level:5, color:'#F59E0B' },
-    { id:'hair_red_m',   name:'紅色短髮', gender:'male',   level:6, color:'#EF4444' },
-    { id:'hair_red_f',   name:'紅色長髮', gender:'female', level:6, color:'#EF4444' },
-    { id:'hair_white_m', name:'白色短髮', gender:'male',   level:8, color:'#E2E8F0' },
-    { id:'hair_white_f', name:'白色長髮', gender:'female', level:8, color:'#E2E8F0' },
-    { id:'hair_bald',    name:'✨ 光頭',  gender:'all',    level:1, color:null, badge:'daily', icon:'🧑‍🦲' },
+    { id:'hair_black_m',  name:'黑色短髮',  gender:'male',   level:1,  color:'#1C1C1C' },
+    { id:'hair_black_f',  name:'黑色長髮',  gender:'female', level:1,  color:'#1C1C1C' },
+    { id:'hair_brown_m',  name:'棕色短髮',  gender:'male',   level:2,  color:'#7C4A1E' },
+    { id:'hair_brown_f',  name:'棕色長髮',  gender:'female', level:2,  color:'#7C4A1E' },
+    { id:'hair_blue_m',   name:'藍色短髮',  gender:'male',   level:4,  color:'#3B82F6' },
+    { id:'hair_blue_f',   name:'藍色長髮',  gender:'female', level:4,  color:'#3B82F6' },
+    { id:'hair_gold_m',   name:'金色短髮',  gender:'male',   level:5,  color:'#F59E0B' },
+    { id:'hair_gold_f',   name:'金色長髮',  gender:'female', level:5,  color:'#F59E0B' },
+    { id:'hair_red_m',    name:'紅色短髮',  gender:'male',   level:6,  color:'#EF4444' },
+    { id:'hair_red_f',    name:'紅色長髮',  gender:'female', level:6,  color:'#EF4444' },
+    { id:'hair_white_m',  name:'白色短髮',  gender:'male',   level:8,  color:'#E2E8F0' },
+    { id:'hair_white_f',  name:'白色長髮',  gender:'female', level:8,  color:'#E2E8F0' },
+    { id:'hair_green_m',  name:'綠色短髮',  gender:'male',   level:10, color:'#10B981' },
+    { id:'hair_green_f',  name:'綠色長髮',  gender:'female', level:10, color:'#10B981' },
+    { id:'hair_purple_m', name:'紫色短髮',  gender:'male',   level:12, color:'#8B5CF6' },
+    { id:'hair_purple_f', name:'紫色長髮',  gender:'female', level:12, color:'#8B5CF6' },
+    { id:'hair_pink_f',   name:'粉色長髮',  gender:'female', level:15, color:'#EC4899' },
+    { id:'hair_cyan_m',   name:'青色短髮',  gender:'male',   level:18, color:'#06B6D4' },
+    { id:'hair_rainbow_m',name:'彩虹短髮',  gender:'male',   level:25, color:'#FF6B6B' },
+    { id:'hair_rainbow_f',name:'彩虹長髮',  gender:'female', level:25, color:'#FF6B6B' },
+    { id:'hair_bald',     name:'✨ 光頭',   gender:'all',    level:1,  color:null, badge:'daily', icon:'🧑‍🦲' },
   ],
   shirt: [
-    { id:'shirt_red',    name:'紅色上衣', gender:'all',    level:1, color:'#EF4444' },
-    { id:'shirt_blue',   name:'藍色上衣', gender:'all',    level:1, color:'#3B82F6' },
-    { id:'shirt_green',  name:'綠色上衣', gender:'all',    level:2, color:'#10B981' },
-    { id:'shirt_purple', name:'紫色上衣', gender:'all',    level:3, color:'#8B5CF6' },
-    { id:'shirt_orange', name:'橘色上衣', gender:'all',    level:4, color:'#F97316' },
-    { id:'shirt_gold',   name:'金色上衣', gender:'all',    level:5, color:'#F59E0B' },
-    { id:'shirt_pink',   name:'粉色洋裝', gender:'female', level:2, color:'#EC4899' },
-    { id:'shirt_tux',    name:'帥氣西裝', gender:'male',   level:4, color:'#1E293B' },
-    { id:'shirt_cyan',   name:'青色上衣', gender:'all',    level:6, color:'#06B6D4' },
-    { id:'shirt_legend', name:'傳說盔甲', gender:'all',    level:9, color:'#FFD700' },
+    { id:'shirt_red',    name:'紅色上衣',   gender:'all',    level:1,  color:'#EF4444' },
+    { id:'shirt_blue',   name:'藍色上衣',   gender:'all',    level:1,  color:'#3B82F6' },
+    { id:'shirt_green',  name:'綠色上衣',   gender:'all',    level:2,  color:'#10B981' },
+    { id:'shirt_purple', name:'紫色上衣',   gender:'all',    level:3,  color:'#8B5CF6' },
+    { id:'shirt_orange', name:'橘色上衣',   gender:'all',    level:4,  color:'#F97316' },
+    { id:'shirt_gold',   name:'金色上衣',   gender:'all',    level:5,  color:'#F59E0B' },
+    { id:'shirt_pink',   name:'粉色洋裝',   gender:'female', level:2,  color:'#EC4899' },
+    { id:'shirt_tux',    name:'帥氣西裝',   gender:'male',   level:4,  color:'#1E293B' },
+    { id:'shirt_cyan',   name:'青色上衣',   gender:'all',    level:6,  color:'#06B6D4' },
+    { id:'shirt_black',  name:'酷黑上衣',   gender:'all',    level:7,  color:'#0F172A' },
+    { id:'shirt_stripe', name:'條紋衫',     gender:'all',    level:9,  color:'#334155' },
+    { id:'shirt_lime',   name:'萊姆綠衣',   gender:'all',    level:11, color:'#84CC16' },
+    { id:'shirt_rose',   name:'玫瑰紅衣',   gender:'female', level:13, color:'#F43F5E' },
+    { id:'shirt_knight', name:'騎士盔甲',   gender:'male',   level:16, color:'#94A3B8' },
+    { id:'shirt_galaxy', name:'星河戰袍',   gender:'all',    level:20, color:'#312E81' },
+    { id:'shirt_legend', name:'傳說盔甲',   gender:'all',    level:30, color:'#FFD700' },
   ],
   pants: [
-    { id:'pants_blue',   name:'藍色褲子', gender:'all',    level:1, color:'#1E40AF' },
-    { id:'pants_black',  name:'黑色褲子', gender:'all',    level:1, color:'#0F172A' },
-    { id:'pants_red',    name:'紅色褲子', gender:'all',    level:3, color:'#DC2626' },
-    { id:'pants_green',  name:'綠色褲子', gender:'all',    level:4, color:'#059669' },
-    { id:'pants_pink',   name:'粉色裙子', gender:'female', level:2, color:'#F472B6' },
-    { id:'pants_purple', name:'紫色褲子', gender:'all',    level:5, color:'#7C3AED' },
-    { id:'pants_gold',   name:'金色褲子', gender:'all',    level:7, color:'#D97706' },
+    { id:'pants_blue',   name:'藍色褲子',   gender:'all',    level:1,  color:'#1E40AF' },
+    { id:'pants_black',  name:'黑色褲子',   gender:'all',    level:1,  color:'#0F172A' },
+    { id:'pants_red',    name:'紅色褲子',   gender:'all',    level:3,  color:'#DC2626' },
+    { id:'pants_green',  name:'綠色褲子',   gender:'all',    level:4,  color:'#059669' },
+    { id:'pants_pink',   name:'粉色裙子',   gender:'female', level:2,  color:'#F472B6' },
+    { id:'pants_purple', name:'紫色褲子',   gender:'all',    level:5,  color:'#7C3AED' },
+    { id:'pants_gold',   name:'金色褲子',   gender:'all',    level:7,  color:'#D97706' },
+    { id:'pants_white',  name:'白色褲子',   gender:'all',    level:8,  color:'#CBD5E1' },
+    { id:'pants_orange', name:'橘色褲子',   gender:'all',    level:10, color:'#EA580C' },
+    { id:'pants_cyan',   name:'青色褲子',   gender:'all',    level:14, color:'#0891B2' },
+    { id:'pants_galaxy', name:'星河長褲',   gender:'all',    level:22, color:'#1E1B4B' },
+    { id:'pants_legend', name:'傳說戰甲腿', gender:'all',    level:35, color:'#B45309' },
   ],
   accessory: [
-    { id:'acc_none',    name:'無配件',  gender:'all',    level:1, color:null },
-    { id:'acc_glasses', name:'眼鏡',    gender:'all',    level:2, color:'#475569' },
-    { id:'acc_hat',     name:'棒球帽',  gender:'male',   level:3, color:'#334155' },
-    { id:'acc_bow',     name:'蝴蝶結',  gender:'female', level:3, color:'#F472B6' },
-    { id:'acc_star',    name:'星星貼',  gender:'all',    level:4, color:'#F59E0B' },
-    { id:'acc_ribbon',  name:'緞帶',    gender:'female', level:5, color:'#EC4899' },
-    { id:'acc_sword',   name:'小配劍',  gender:'male',   level:6, color:'#94A3B8' },
-    { id:'acc_crown',   name:'皇冠',    gender:'all',    level:8, color:'#FFD700' },
+    { id:'acc_none',      name:'無配件',    gender:'all',    level:1,  color:null },
+    { id:'acc_glasses',   name:'眼鏡',      gender:'all',    level:2,  color:'#475569' },
+    { id:'acc_hat',       name:'帽子配件',  gender:'male',   level:3,  color:'#334155' },
+    { id:'acc_bow',       name:'蝴蝶結',    gender:'female', level:3,  color:'#F472B6' },
+    { id:'acc_star',      name:'星星貼',    gender:'all',    level:4,  color:'#F59E0B' },
+    { id:'acc_ribbon',    name:'緞帶',      gender:'female', level:5,  color:'#EC4899' },
+    { id:'acc_sword',     name:'小配劍',    gender:'male',   level:6,  color:'#94A3B8' },
+    { id:'acc_crown',     name:'皇冠',      gender:'all',    level:8,  color:'#FFD700' },
+    { id:'acc_wings',     name:'天使翅膀',  gender:'female', level:12, color:'#E0E7FF' },
+    { id:'acc_shield',    name:'盾牌',      gender:'male',   level:15, color:'#1E3A8A' },
+    { id:'acc_halo',      name:'光環',      gender:'all',    level:20, color:'#FDE68A' },
+    { id:'acc_dragon',    name:'龍翼',      gender:'all',    level:28, color:'#7C3AED' },
+    { id:'acc_aurora',    name:'極光披風',  gender:'all',    level:35, color:'#06B6D4' },
+    { id:'acc_phoenix',   name:'鳳凰羽翼',  gender:'all',    level:42, color:'#F97316' },
+    { id:'acc_nebula',    name:'星雲斗篷',  gender:'all',    level:48, color:'#8B5CF6' },
+    { id:'acc_legendary', name:'傳說光芒',  gender:'all',    level:50, color:'#FFD700' },
+  ],
+  hat: [
+    { id:'hat_none',      name:'無帽子',    gender:'all',    level:1,  color:null },
+    { id:'hat_baseball',  name:'棒球帽',    gender:'all',    level:3,  color:'#334155' },
+    { id:'hat_wizard',    name:'魔法師帽',  gender:'all',    level:8,  color:'#4C1D95' },
+    { id:'hat_crown',     name:'王冠帽',    gender:'all',    level:12, color:'#FFD700' },
+    { id:'hat_cowboy',    name:'牛仔帽',    gender:'all',    level:16, color:'#92400E' },
+    { id:'hat_space',     name:'太空頭盔',  gender:'all',    level:24, color:'#1E3A8A' },
+    { id:'hat_samurai',   name:'武士盔',    gender:'all',    level:35, color:'#1C1C1C' },
+    { id:'hat_mythic',    name:'神話頭冠',  gender:'all',    level:48, color:'#F59E0B' },
   ],
 };
+
 const DEFAULT_COSMETICS = {
   gender: null,
-  equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none' }
+  equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none', hat: 'hat_none' }
 };
+
 function findCosItem(cat, id) {
   return (COSMETIC_ITEMS[cat] || []).find(x => x.id === id) || null;
 }
@@ -256,14 +290,14 @@ function getDefaultHair(gender) {
 }
 function ensureCosmetics(p) {
   if (p.cosmetics && p.cosmetics.gender !== undefined) return p;
-  return { ...p, cosmetics: { gender: null, equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none' } } };
+  return { ...p, cosmetics: { gender: null, equipped: { hair: null, shirt: 'shirt_red', pants: 'pants_blue', accessory: 'acc_none', hat: 'hat_none' } } };
 }
-// 判斷某個外觀道具是否已解鎖（等級 + 可選的成就條件）
 function isCosItemUnlocked(item, prog) {
   if (getLevel(prog.xp) < item.level) return false;
   if (item.badge) return (prog.badges || []).includes(item.badge);
   return true;
 }
+
 
 function loadProg() {
   try {
@@ -294,7 +328,6 @@ function calcMaxStreak(results) {
   return max;
 }
 
-// After a session: compute gains, update progress, return what changed
 function processSession({ prog, results, difficulty, questions }) {
   let p = ensureDaily({ ...prog,
     diffStats: { ...prog.diffStats },
@@ -307,22 +340,17 @@ function processSession({ prog, results, difficulty, questions }) {
   const streak  = calcMaxStreak(results);
   const perfect = pct === 100;
 
-  // Per-question XP
   const baseXP = correct * DIFF_XP[difficulty];
-  // Session bonus
   const bonusXP = perfect ? 50 : pct >= 90 ? 30 : pct >= 70 ? 15 : 0;
-  // Streak bonus
   const streakBonus = Math.floor(streak / 3) * 5;
   let xpGained = baseXP + bonusXP + streakBonus;
 
-  // Type stats
   questions.forEach((q, i) => {
     if (results[i]) p.typeCorrect[q.type] = (p.typeCorrect[q.type]||0) + 1;
   });
 
   const listenCorrectThisSession = questions.filter((q,i) => q.type==='listen' && results[i]).length;
 
-  // Update core stats
   p.xp                += xpGained;
   p.totalCorrect      += correct;
   p.totalSessions     += 1;
@@ -330,7 +358,6 @@ function processSession({ prog, results, difficulty, questions }) {
   p.maxStreak          = Math.max(p.maxStreak, streak);
   p.diffStats[difficulty] = (p.diffStats[difficulty]||0) + 1;
 
-  // Daily tracking
   p.daily.answered += total;
   p.daily.correct  += correct;
   p.daily.sessions += 1;
@@ -339,7 +366,6 @@ function processSession({ prog, results, difficulty, questions }) {
   p.daily.streak   = Math.max(p.daily.streak, streak);
   p.daily.listenOk += listenCorrectThisSession;
 
-  // Check daily tasks completion & award XP
   const newlyCompletedTasks = [];
   const taskDefs = TASK_POOL.filter(t => p.daily.taskIds.includes(t.id));
   taskDefs.forEach(t => {
@@ -355,7 +381,6 @@ function processSession({ prog, results, difficulty, questions }) {
   const allDailyNowDone = taskDefs.length > 0 && taskDefs.every(t => p.daily.done.includes(t.id));
   if (allDailyNowDone && (prog.daily?.done?.length || 0) < taskDefs.length) p.allDailyDone += 1;
 
-  // Check badge unlocks
   const prevBadges = new Set(prog.badges || []);
   const newBadges  = [];
   BADGE_DEFS.forEach(b => {
@@ -365,7 +390,6 @@ function processSession({ prog, results, difficulty, questions }) {
     }
   });
 
-  // Level up?
   const prevLv = getLevel(prog.xp);
   const newLv  = getLevel(p.xp);
   const leveledUp = newLv > prevLv;
@@ -375,7 +399,7 @@ function processSession({ prog, results, difficulty, questions }) {
            newlyCompletedTasks, allDailyDone: allDailyNowDone };
 }
 
-// ── Roblox Character ──────────────────────────────────────────────────────────
+
 function Pip({ size=80, pose='idle', cosmetics=null }) {
   const cos = cosmetics
     ? { gender: cosmetics.gender, equipped: { ...DEFAULT_COSMETICS.equipped, ...(cosmetics.equipped||{}) } }
@@ -388,11 +412,13 @@ function Pip({ size=80, pose='idle', cosmetics=null }) {
   const shirtId = eq.shirt     || 'shirt_red';
   const pantsId = eq.pants     || 'pants_blue';
   const accId   = eq.accessory || 'acc_none';
+  const hatId   = eq.hat       || 'hat_none';
 
   const hairItem  = findCosItem('hair',      hairId);
   const shirtItem = findCosItem('shirt',     shirtId);
   const pantsItem = findCosItem('pants',     pantsId);
   const accItem   = findCosItem('accessory', accId);
+  const hatItem   = findCosItem('hat',       hatId);
 
   const isBald     = hairItem?.id === 'hair_bald';
   const hairColor  = hairItem?.color  || '#1C1C1C';
@@ -409,7 +435,6 @@ function Pip({ size=80, pose='idle', cosmetics=null }) {
     ? <path d="M40 60 Q50 70 60 60" stroke="#000" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     : <path d="M40 58 Q50 65 60 58" stroke="#000" strokeWidth="2.5" fill="none" strokeLinecap="round"/>;
 
-  // Accessory
   let accEl = null;
   if (accItem && accItem.id !== 'acc_none') {
     const ac = accItem.color;
@@ -427,69 +452,103 @@ function Pip({ size=80, pose='idle', cosmetics=null }) {
       accEl = <g transform="translate(80,44)"><rect x="0" y="0" width="5" height="28" rx="1" fill="#94A3B8" stroke="#000" strokeWidth="1.5"/><rect x="-3" y="7" width="11" height="4" rx="1" fill="#F59E0B" stroke="#000" strokeWidth="1"/><rect x="0" y="24" width="5" height="6" rx="1" fill="#7C4A1E" stroke="#000" strokeWidth="1"/></g>;
     else if (accItem.id === 'acc_crown')
       accEl = <g><path d="M24 12 L30 2 L42 9 L50 1 L58 9 L70 2 L76 12 L76 19 L24 19 Z" fill={ac} stroke="#000" strokeWidth="2"/><circle cx="30" cy="10" r="3" fill="#fff"/><circle cx="50" cy="5" r="3" fill="#fff"/><circle cx="70" cy="10" r="3" fill="#fff"/></g>;
+    else if (accItem.id === 'acc_wings')
+      accEl = <g opacity="0.9"><path d="M18 70 Q0 50 5 35 Q12 55 22 65 Z" fill={ac} stroke="#000" strokeWidth="1.5"/><path d="M82 70 Q100 50 95 35 Q88 55 78 65 Z" fill={ac} stroke="#000" strokeWidth="1.5"/></g>;
+    else if (accItem.id === 'acc_shield')
+      accEl = <g transform="translate(-18,56)"><path d="M0 0 L18 0 L18 20 L9 28 L0 20 Z" fill={ac} stroke="#000" strokeWidth="2"/><text x="9" y="16" textAnchor="middle" fontSize="10" fill="#fff">🛡</text></g>;
+    else if (accItem.id === 'acc_halo')
+      accEl = <ellipse cx="50" cy="0" rx="22" ry="6" fill="none" stroke={ac} strokeWidth="3" opacity="0.85"/>;
+    else if (accItem.id === 'acc_dragon' || accItem.id === 'acc_aurora' || accItem.id === 'acc_phoenix' || accItem.id === 'acc_nebula' || accItem.id === 'acc_legendary')
+      accEl = <g opacity="0.85"><path d="M18 70 Q-5 40 8 20 Q15 50 24 65 Z" fill={ac} stroke="#000" strokeWidth="1.5"/><path d="M82 70 Q105 40 92 20 Q85 50 76 65 Z" fill={ac} stroke="#000" strokeWidth="1.5"/></g>;
+  }
+
+  let hatEl = null;
+  if (hatItem && hatItem.id !== 'hat_none') {
+    const hc = hatItem.color;
+    if (hatItem.id === 'hat_baseball')
+      hatEl = <g><rect x="26" y="2" width="48" height="12" rx="4" fill={hc} stroke="#000" strokeWidth="2"/><rect x="16" y="11" width="68" height="5" rx="2" fill={hc} stroke="#000" strokeWidth="1.5"/></g>;
+    else if (hatItem.id === 'hat_wizard')
+      hatEl = <g><polygon points="50,-12 34,15 66,15" fill={hc} stroke="#000" strokeWidth="2"/><rect x="24" y="12" width="52" height="7" rx="3" fill={hc} stroke="#000" strokeWidth="1.5"/><circle cx="50" cy="-2" r="4" fill="#F59E0B"/></g>;
+    else if (hatItem.id === 'hat_crown')
+      hatEl = <g><path d="M26 14 L32 2 L42 10 L50 0 L58 10 L68 2 L74 14 L74 20 L26 20 Z" fill={hc} stroke="#000" strokeWidth="2"/><circle cx="32" cy="8" r="3" fill="#fff"/><circle cx="50" cy="4" r="3" fill="#fff"/><circle cx="68" cy="8" r="3" fill="#fff"/></g>;
+    else if (hatItem.id === 'hat_cowboy')
+      hatEl = <g><ellipse cx="50" cy="14" rx="30" ry="6" fill={hc} stroke="#000" strokeWidth="2"/><path d="M32 14 Q34 2 50 0 Q66 2 68 14 Z" fill={hc} stroke="#000" strokeWidth="2"/></g>;
+    else if (hatItem.id === 'hat_space')
+      hatEl = <g><ellipse cx="50" cy="8" rx="26" ry="18" fill={hc} stroke="#000" strokeWidth="2.5"/><ellipse cx="50" cy="10" rx="16" ry="12" fill="#B0C4DE" opacity="0.6"/><ellipse cx="50" cy="18" rx="30" ry="6" fill={hc} stroke="#000" strokeWidth="1.5"/></g>;
+    else if (hatItem.id === 'hat_samurai')
+      hatEl = <g><path d="M20 16 Q30 -4 50 -6 Q70 -4 80 16 L74 18 L26 18 Z" fill={hc} stroke="#000" strokeWidth="2"/><rect x="26" y="16" width="48" height="6" rx="2" fill="#B45309" stroke="#000" strokeWidth="1.5"/></g>;
+    else if (hatItem.id === 'hat_mythic')
+      hatEl = <g><path d="M50 -14 L30 8 L50 4 L70 8 Z" fill={hc} stroke="#000" strokeWidth="2"/><ellipse cx="50" cy="10" rx="28" ry="8" fill={hc} stroke="#000" strokeWidth="2"/><circle cx="50" cy="-10" r="5" fill="#fff" opacity="0.9"/></g>;
   }
 
   return (
     <svg viewBox="0 0 100 130" width={size} height={size * 1.3}>
-      {/* Long hair back — female only, skip if bald */}
       {isFemale && !isBald && <>
         <rect x="13" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
         <rect x="75" y="20" width="12" height="36" rx="5" fill={hairColor} stroke="#000" strokeWidth="2"/>
       </>}
-      {/* Head */}
       <rect x="22" y="4" width="56" height="52" rx="6" fill="#FFD700" stroke="#000" strokeWidth="3"/>
-      {/* Hair top — skip if bald */}
       {!isBald && <rect x="22" y="4" width="56" height="15" rx="6" fill={hairColor} stroke="#000" strokeWidth="2.5"/>}
-      {/* Bald shine highlight */}
       {isBald && <ellipse cx="50" cy="16" rx="16" ry="8" fill="#fff" opacity="0.2"/>}
-      {/* Eyes */}
       <rect x="30" y="22" width="14" height="14" rx="3" fill="#000"/>
       <rect x="56" y="22" width="14" height="14" rx="3" fill="#000"/>
       <rect x="32" y="24" width="6" height="6" rx="1" fill="#fff"/>
       <rect x="58" y="24" width="6" height="6" rx="1" fill="#fff"/>
-      {/* Female eyelashes */}
       {isFemale && <>
         <path d="M30 22 L27 17 M37 21 L37 16 M44 22 L47 17" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
         <path d="M56 22 L53 17 M63 21 L63 16 M70 22 L73 17" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
       </>}
-      {/* Blush */}
       <ellipse cx="28" cy="44" rx="7" ry="4" fill="#FF6B8A" opacity="0.5"/>
       <ellipse cx="72" cy="44" rx="7" ry="4" fill="#FF6B8A" opacity="0.5"/>
       {mouth}
-      {/* Accessories */}
       {accEl}
-      {/* Body */}
+      {hatEl}
       <rect x="18" y="56" width="64" height="44" rx="6" fill={shirtColor} stroke="#000" strokeWidth="3"/>
       <rect x="36" y="68" width="28" height="18" rx="4" fill="#fff" opacity="0.15"/>
-      {/* Arms */}
       {armL}{armR}
-      {/* Legs */}
       <rect x="22" y="100" width="24" height="26" rx="4" fill={pantsColor} stroke="#000" strokeWidth="3"/>
       <rect x="54" y="100" width="24" height="26" rx="4" fill={pantsColor} stroke="#000" strokeWidth="3"/>
-      {/* Shoes */}
       <rect x="18" y="120" width="30" height="10" rx="3" fill="#000"/>
       <rect x="52" y="120" width="30" height="10" rx="3" fill="#000"/>
     </svg>
   );
 }
 
-// ── Question bank ─────────────────────────────────────────────────────────────
+const VOWEL_IPA = { a:'/æ/', e:'/ɛ/', i:'/ɪ/', o:'/ɒ/', u:'/ʌ/', sh:'/ʃ/', th:'/θ/', ch:'/tʃ/', wh:'/w/' };
+function slotIPA(s, picked) {
+  if (s !== '_') return s==='c' ? '/k/' : s==='t' ? '/t/' : `/${s}/`;
+  if (!picked) return '/  /';
+  return VOWEL_IPA[picked] || `/${picked}/`;
+}
+
 const QB = {
   easy: {
     label:'新手區 Newbie Zone', color:'#10B981', bg:'#052e16', stars:1, emoji:'🌱',
     desc:'三年級・問候・顏色・動物・教室物品',
     questions:[
+      // listen - colors
       { type:'listen', text:'red',    cn:'紅色',  emoji:'🔴', choices:['red','bed','fed','led'],       correct:0 },
       { type:'listen', text:'blue',   cn:'藍色',  emoji:'🔵', choices:['blue','clue','glue','true'],   correct:0 },
       { type:'listen', text:'green',  cn:'綠色',  emoji:'💚', choices:['clean','green','mean','seen'],  correct:1 },
       { type:'listen', text:'yellow', cn:'黃色',  emoji:'💛', choices:['fellow','yellow','below','hello'], correct:1 },
+      { type:'listen', text:'orange', cn:'橘色',  emoji:'🟠', choices:['orange','arrange','strange','change'], correct:0 },
+      { type:'listen', text:'purple', cn:'紫色',  emoji:'🟣', choices:['people','purple','simple','maple'], correct:1 },
+      // listen - animals
       { type:'listen', text:'cat',    cn:'貓',   emoji:'🐱', choices:['cat','bat','hat','rat'],        correct:0 },
       { type:'listen', text:'dog',    cn:'狗',   emoji:'🐶', choices:['fog','log','dog','hog'],        correct:2 },
       { type:'listen', text:'fish',   cn:'魚',   emoji:'🐟', choices:['dish','wish','fish','kiss'],    correct:2 },
       { type:'listen', text:'rabbit', cn:'兔子',  emoji:'🐰', choices:['rabbit','habit','cabin','tablet'], correct:0 },
+      { type:'listen', text:'bird',   cn:'鳥',   emoji:'🐦', choices:['word','bird','third','heard'],  correct:1 },
+      { type:'listen', text:'elephant', cn:'大象', emoji:'🐘', choices:['elephant','elegant','element','elevator'], correct:0 },
+      // listen - classroom
       { type:'listen', text:'book',   cn:'書',   emoji:'📚', choices:['book','look','cook','hook'],    correct:0 },
       { type:'listen', text:'pencil', cn:'鉛筆',  emoji:'✏️', choices:['pencil','stencil','cancel','council'], correct:0 },
       { type:'listen', text:'ruler',  cn:'尺',   emoji:'📏', choices:['ruler','color','cooler','taller'], correct:0 },
+      { type:'listen', text:'eraser', cn:'橡皮擦', emoji:'🧹', choices:['eraser','easier','laser','maser'], correct:0 },
+      // listen - greetings
+      { type:'listen', text:'Good morning!', cn:'早安！', emoji:'🌅', choices:['Good evening!','Good morning!','Good afternoon!','Good night!'], correct:1 },
+      { type:'listen', text:'How are you?', cn:'你好嗎？', emoji:'😊', choices:['Who are you?','How are you?','Where are you?','What are you?'], correct:1 },
+      // phonics
       { type:'phonics', word:'cat', slots:['c','_','t'], answer:'a', emoji:'🐱', choices:['a','i','o','u'] },
       { type:'phonics', word:'dog', slots:['d','_','g'], answer:'o', emoji:'🐶', choices:['a','e','o','u'] },
       { type:'phonics', word:'hen', slots:['h','_','n'], answer:'e', emoji:'🐔', choices:['a','e','i','o'] },
@@ -498,24 +557,40 @@ const QB = {
       { type:'phonics', word:'bat', slots:['b','_','t'], answer:'a', emoji:'🦇', choices:['a','e','i','u'] },
       { type:'phonics', word:'box', slots:['b','_','x'], answer:'o', emoji:'📦', choices:['a','e','o','u'] },
       { type:'phonics', word:'sun', slots:['s','_','n'], answer:'u', emoji:'☀️', choices:['a','e','i','u'] },
+      { type:'phonics', word:'bed', slots:['b','_','d'], answer:'e', emoji:'🛏️', choices:['a','e','i','o'] },
+      { type:'phonics', word:'top', slots:['t','_','p'], answer:'o', emoji:'🪀', choices:['a','e','o','u'] },
+      { type:'phonics', word:'fin', slots:['f','_','n'], answer:'i', emoji:'🐟', choices:['a','e','i','u'] },
+      { type:'phonics', word:'mug', slots:['m','_','g'], answer:'u', emoji:'☕', choices:['a','e','i','u'] },
+      // fill
       { type:'fill', sentence:"What's ___? It's a book.", answer:'this', emoji:'📚', choices:['this','that','these','those'], hint:'近處單數' },
       { type:'fill', sentence:'The apple is ___ .', answer:'red',  emoji:'🍎', choices:['red','book','swim','tall'], hint:'顏色' },
       { type:'fill', sentence:'I have a ___ .', answer:'cat', emoji:'🐱', choices:['cat','run','blue','fast'], hint:'名詞' },
-      { type:'fill', sentence:'___ color is it? It\'s blue.', answer:'What', emoji:'💙', choices:['What','How','Who','Where'], hint:'問顏色' },
+      { type:'fill', sentence:'___ color is it? It's blue.', answer:'What', emoji:'💙', choices:['What','How','Who','Where'], hint:'問顏色' },
       { type:'fill', sentence:'Good ___ , teacher!', answer:'morning', emoji:'🌞', choices:['morning','night','thank','sorry'], hint:'早上問候' },
-      { type:'fill', sentence:'___ are you? I\'m fine.', answer:'How', emoji:'😊', choices:['How','What','Where','Who'], hint:'問候語' },
-      { type:'video', videoId:'tQASh8bbkUY', cn:'Colors Song 2',
-        question:'影片中，天空的顏色是什麼？', choices:['red','blue','green','yellow'], correct:1 },
-      { type:'video', videoId:'D0Ajq682yrA', cn:'Number Song 1-20',
-        question:'影片中唱到最大的數字是？', choices:['10','20','30','50'], correct:1 },
-      { type:'video', videoId:'zMdq9jSaNLg', cn:"What's Your Name? Song",
-        question:'影片用什麼句子問名字？', choices:["What's your name?","How old are you?","Where are you?","Are you OK?"], correct:0 },
+      { type:'fill', sentence:'___ are you? I'm fine.', answer:'How', emoji:'😊', choices:['How','What','Where','Who'], hint:'問候語' },
+      { type:'fill', sentence:'I am ___ years old.', answer:'eight', emoji:'8️⃣', choices:['eight','ate','gate','late'], hint:'數字' },
+      { type:'fill', sentence:'She is my ___ .', answer:'sister', emoji:'👧', choices:['sister','brother','father','teacher'], hint:'家庭成員' },
+      { type:'fill', sentence:'This is a ___ . It can fly.', answer:'bird', emoji:'🐦', choices:['bird','fish','cat','frog'], hint:'動物' },
+      { type:'fill', sentence:'___ your name? My name is Pip.', answer:"What's", emoji:'👋', choices:["What's","How's","Where's","Who's"], hint:'問名字' },
+      { type:'fill', sentence:'The sky is ___ .', answer:'blue', emoji:'☀️', choices:['blue','red','green','black'], hint:'天空顏色' },
+      { type:'fill', sentence:'One, two, ___ , four, five.', answer:'three', emoji:'3️⃣', choices:['three','six','nine','ten'], hint:'數數' },
+      { type:'fill', sentence:'I see a ___ . It is big.', answer:'elephant', emoji:'🐘', choices:['elephant','ant','bee','cat'], hint:'大動物' },
+      // order
+      { type:'order', words:['my','name','is','Pip'], answer:'my name is Pip', emoji:'👋' },
+      { type:'order', words:['is','a','this','cat'], answer:'this is a cat', emoji:'🐱' },
+      { type:'order', words:['color','what','is','it','?'], answer:'what color is it ?', emoji:'🎨' },
+      { type:'order', words:['morning','good','teacher'], answer:'good morning teacher', emoji:'🌅' },
+      { type:'order', words:['have','I','a','book'], answer:'I have a book', emoji:'📚' },
+      { type:'order', words:['are','you','how','?'], answer:'how are you ?', emoji:'😊' },
     ]
   },
+
+
   medium: {
     label:'冒險世界 Battle World', color:'#3B82F6', bg:'#0c1a3a', stars:2, emoji:'⚔️',
-    desc:'四年級・情緒・職業・能力・食物',
+    desc:'四年級・情緒・職業・能力・食物・天氣',
     questions:[
+      // listen - emotions & ability
       { type:'listen', text:'Are you happy?', cn:'你快樂嗎？', emoji:'😊',
         choices:['Are you hungry?','Are you happy?','Are you heavy?','Are you healthy?'], correct:1 },
       { type:'listen', text:'I am sad.', cn:'我很難過。', emoji:'😢',
@@ -534,6 +609,18 @@ const QB = {
         choices:['I like broccoli.','I like broccoli soup.','I hate broccoli.','I need broccoli.'], correct:0 },
       { type:'listen', text:'Is he a teacher?', cn:'他是老師嗎？', emoji:'👨‍🏫',
         choices:['Is he a student?','Is he a teacher?','Is she a teacher?','Are they teachers?'], correct:1 },
+      { type:'listen', text:'What do you do?', cn:'你是做什麼的？', emoji:'💼',
+        choices:['What do you do?','What did you do?','Where do you go?','When do you work?'], correct:0 },
+      { type:'listen', text:'I can ride a bike.', cn:'我會騎腳踏車。', emoji:'🚲',
+        choices:["I can't ride a bike.",'I can run a bike.','I can ride a bike.','I like riding a bike.'], correct:2 },
+      { type:'listen', text:'She cannot fly a kite.', cn:'她不會放風箏。', emoji:'🪁',
+        choices:['She can fly a kite.','She cannot fly a kite.','She loves flying kites.','She wants to fly a kite.'], correct:1 },
+      // daily routine
+      { type:'listen', text:'I get up at seven.', cn:'我七點起床。', emoji:'⏰',
+        choices:['I go to bed at seven.','I get up at seven.','I get up at eleven.','I eat at seven.'], correct:1 },
+      { type:'listen', text:'He goes to school by bus.', cn:'他搭公車上學。', emoji:'🚌',
+        choices:['He goes to school on foot.','He goes to school by car.','He goes to school by bus.','He goes home by bus.'], correct:2 },
+      // fill
       { type:'fill', sentence:'___ your brother a cook?', answer:'Is', emoji:'👨‍🍳',
         choices:['Is','Are','Do','Does'], hint:'Be動詞' },
       { type:'fill', sentence:'She is not happy. She is ___.', answer:'sad', emoji:'😢',
@@ -546,22 +633,52 @@ const QB = {
         choices:['and','or','but','so'], hint:'連接詞' },
       { type:'fill', sentence:'Do you ___ broccoli? Yes, I do.', answer:'like', emoji:'🥦',
         choices:['like','eat','want','have'], hint:'動詞' },
+      { type:'fill', sentence:'She is a ___. She helps sick people.', answer:'doctor', emoji:'👩‍⚕️',
+        choices:['doctor','teacher','cook','singer'], hint:'職業' },
+      { type:'fill', sentence:'I get ___ at six thirty every day.', answer:'up', emoji:'⏰',
+        choices:['up','in','on','off'], hint:'片語動詞' },
+      { type:'fill', sentence:'___ do you go to school? By bus.', answer:'How', emoji:'🚌',
+        choices:['How','What','Where','Why'], hint:'問方式' },
+      { type:'fill', sentence:'My mother is a ___ . She flies planes.', answer:'pilot', emoji:'✈️',
+        choices:['pilot','driver','captain','sailor'], hint:'職業' },
+      { type:'fill', sentence:'___ can't run fast. He is too slow.', answer:'He', emoji:'🐢',
+        choices:['He','She','I','We'], hint:'代名詞' },
+      { type:'fill', sentence:'I like cats ___ I don't like dogs.', answer:'but', emoji:'🐱',
+        choices:['but','and','or','so'], hint:'連接詞' },
+      { type:'fill', sentence:'We have P.E. class ___ Tuesdays.', answer:'on', emoji:'⚽',
+        choices:['on','at','in','by'], hint:'介係詞' },
+      // order
       { type:'order', words:['you','can','swim','?'], answer:'can you swim ?', emoji:'🏊' },
       { type:'order', words:['is','he','sad','?'], answer:'is he sad ?', emoji:'😢' },
       { type:'order', words:['not','I','broccoli','like','do'], answer:'I do not like broccoli', emoji:'🥦' },
       { type:'order', words:['she','a','cook','is','?'], answer:'is she a cook ?', emoji:'👩‍🍳' },
-      { type:'video', videoId:'ZWu5P7OuMIE', cn:'Can You Swim? Song',
-        question:'影片的主題是關於什麼能力？', choices:['游泳','唱歌','跳舞','畫畫'], correct:0 },
-      { type:'video', videoId:'eMOnyPxE_w8', cn:'Are You Happy? Song',
-        question:'下列哪個是影片中的情緒單字？', choices:['hungry','happy','heavy','healthy'], correct:1 },
-      { type:'video', videoId:'frN3nvhIHUk', cn:'Do You Like Broccoli? Song',
-        question:'影片主要在問什麼？', choices:['詢問食物偏好','詢問天氣','詢問地點','詢問時間'], correct:0 },
+      { type:'order', words:['can','she','dance','and','sing'], answer:'she can dance and sing', emoji:'💃' },
+      { type:'order', words:['do','what','you','do','?'], answer:'what do you do ?', emoji:'💼' },
+      { type:'order', words:['like','you','do','pizza','?'], answer:'do you like pizza ?', emoji:'🍕' },
+      { type:'order', words:['seven','up','I','get','at'], answer:'I get up at seven', emoji:'⏰' },
+      { type:'order', words:['angry','is','he','today'], answer:'he is angry today', emoji:'😠' },
+      { type:'order', words:['school','he','to','goes','by','bus'], answer:'he goes to school by bus', emoji:'🚌' },
+      { type:'fill', sentence:'My father ___ to work by car.', answer:'goes', emoji:'🚗', choices:['goes','go','going','went'], hint:'第三人稱' },
+      { type:'fill', sentence:'___ does she do? She is a nurse.', answer:'What', emoji:'👩‍⚕️', choices:['What','How','Who','Where'], hint:'問職業' },
+      { type:'fill', sentence:'I ___ play the piano.', answer:'can', emoji:'🎹', choices:['can','am','do','have'], hint:'能力' },
+      { type:'fill', sentence:'We ___ lunch at noon every day.', answer:'eat', emoji:'🍱', choices:['eat','eats','ate','eating'], hint:'現在簡單式' },
+      { type:'fill', sentence:'___ many students are in your class?', answer:'How', emoji:'🏫', choices:['How','What','Where','Which'], hint:'問數量' },
+      { type:'fill', sentence:'She ___ up at six every morning.', answer:'gets', emoji:'⏰', choices:['gets','get','got','getting'], hint:'第三人稱單數' },
+      { type:'phonics', word:'run', slots:['r','_','n'], answer:'u', emoji:'🏃', choices:['a','e','i','u'] },
+      { type:'phonics', word:'hop', slots:['h','_','p'], answer:'o', emoji:'🐸', choices:['a','e','o','u'] },
+      { type:'phonics', word:'sit', slots:['s','_','t'], answer:'i', emoji:'🪑', choices:['a','e','i','u'] },
+      { type:'listen', text:'What is your favorite food?', cn:'你最喜歡的食物是什麼？', emoji:'🍜', choices:['What is your favorite sport?','What is your favorite food?','What is your favorite color?','What is your favorite movie?'], correct:1 },
+      { type:'listen', text:'My favorite season is summer.', cn:'我最喜歡的季節是夏天。', emoji:'☀️', choices:['My favorite season is winter.','My favorite season is spring.','My favorite season is summer.','My favorite season is autumn.'], correct:2 },
+      { type:'order', words:['favorite','what','your','is','food','?'], answer:'what is your favorite food ?', emoji:'🍜' },
+      { type:'order', words:['sister','my','tall','is','very'], answer:'my sister is very tall', emoji:'👧' },
     ]
   },
+
   hard: {
     label:'Pro Server 🔥', color:'#F59E0B', bg:'#1c1000', stars:3, emoji:'🔥',
-    desc:'五年級・天氣・地點・時間・活動',
+    desc:'五年級・比較級・購物・方向・過去式・進行式',
     questions:[
+      // listen
       { type:'listen', text:"How's the weather?", cn:'天氣怎麼樣？', emoji:'🌤️',
         choices:["How's the weather?","What's the weather?","Where's the weather?","When's the weather?"], correct:0 },
       { type:'listen', text:"It's sunny today.", cn:'今天是晴天。', emoji:'☀️',
@@ -580,6 +697,17 @@ const QB = {
         choices:["What did you do?","What are you doing?","What will you do?","What do you do?"], correct:1 },
       { type:'listen', text:"I'm reading a book.", cn:'我在看書。', emoji:'📖',
         choices:["I'm writing a book.","I'm reading a book.","I'm buying a book.","I'm lending a book."], correct:1 },
+      { type:'listen', text:'How much is it?', cn:'這個多少錢？', emoji:'💰',
+        choices:['How many is it?','How much is it?','How much are they?','How big is it?'], correct:1 },
+      { type:'listen', text:'Turn left at the corner.', cn:'在轉角左轉。', emoji:'↩️',
+        choices:['Turn right at the corner.','Turn left at the bank.','Turn left at the corner.','Go straight at the corner.'], correct:2 },
+      { type:'listen', text:'She is taller than her sister.', cn:'她比她姐姐高。', emoji:'📏',
+        choices:['She is taller than her mother.','She is shorter than her sister.','She is taller than her sister.','She is as tall as her sister.'], correct:2 },
+      { type:'listen', text:'He went to school yesterday.', cn:'他昨天去學校了。', emoji:'🏫',
+        choices:['He goes to school yesterday.','He went home yesterday.','He went to school yesterday.','He went to school today.'], correct:2 },
+      { type:'listen', text:'They played basketball last weekend.', cn:'他們上個週末打籃球。', emoji:'🏀',
+        choices:['They play basketball last weekend.','They played soccer last weekend.','They played basketball last weekend.','They will play basketball this weekend.'], correct:2 },
+      // fill
       { type:'fill', sentence:"___ the weather? It's cloudy.", answer:"How's", emoji:'☁️',
         choices:["How's","What's","Where's","When's"], hint:'問天氣' },
       { type:'fill', sentence:"It's windy. We ___ fly kites!", answer:'can', emoji:'🪁',
@@ -590,22 +718,51 @@ const QB = {
         choices:['What','When','Where','How'], hint:'問時間' },
       { type:'fill', sentence:'She is ___ at the library now.', answer:'studying', emoji:'📚',
         choices:['studying','studied','studies','study'], hint:'現在進行式' },
+      { type:'fill', sentence:'Tom is ___ than Jerry.', answer:'taller', emoji:'📏',
+        choices:['taller','tallest','tall','more tall'], hint:'比較級' },
+      { type:'fill', sentence:'This shirt is 200 dollars. It is too ___.', answer:'expensive', emoji:'💸',
+        choices:['expensive','cheap','big','small'], hint:'購物形容詞' },
+      { type:'fill', sentence:'___ left at the traffic light.', answer:'Turn', emoji:'🚦',
+        choices:['Turn','Go','Walk','Run'], hint:'方向指示' },
+      { type:'fill', sentence:'I ___ my homework last night.', answer:'did', emoji:'📝',
+        choices:['did','do','does','doing'], hint:'過去式' },
+      { type:'fill', sentence:'She ___ TV when I called.', answer:'was watching', emoji:'📺',
+        choices:['was watching','watched','watches','is watching'], hint:'過去進行式' },
+      { type:'fill', sentence:'He is the ___ student in our class.', answer:'tallest', emoji:'🏆',
+        choices:['tallest','taller','tall','most tall'], hint:'最高級' },
+      { type:'fill', sentence:'Go ___ and turn right.', answer:'straight', emoji:'➡️',
+        choices:['straight','left','back','around'], hint:'方向' },
+      // order
       { type:'order', words:["how's","the","weather","today","?"], answer:"how's the weather today ?", emoji:'🌤️' },
       { type:'order', words:['where','are','you','going','?'], answer:'where are you going ?', emoji:'📍' },
       { type:'order', words:['she','is','reading','a','book'], answer:'she is reading a book', emoji:'📖' },
       { type:'order', words:["it's","seven","thirty"], answer:"it's seven thirty", emoji:'⏰' },
-      { type:'video', videoId:'T4YvWb0WMRQ', cn:'Weather Song',
-        question:'下列哪個不是常見天氣單字？', choices:['cloudy','rainy','sunny','dark'], correct:3 },
-      { type:'video', videoId:'iRuoRzU0MPE', cn:'Days of the Week Song',
-        question:'一週有幾天？', choices:['5天','6天','7天','8天'], correct:2 },
-      { type:'video', videoId:'CXKj7bm4Ops', cn:'Where Are You Going? Song',
-        question:'影片在練習問什麼？', choices:['問地點','問天氣','問時間','問名字'], correct:0 },
+      { type:'order', words:['is','he','taller','than','she'], answer:'he is taller than she', emoji:'📏' },
+      { type:'order', words:['left','the','corner','at','turn'], answer:'turn left at the corner', emoji:'↩️' },
+      { type:'order', words:['much','how','is','this','bag','?'], answer:'how much is this bag ?', emoji:'👜' },
+      { type:'order', words:['yesterday','went','she','to','school'], answer:'she went to school yesterday', emoji:'🏫' },
+      { type:'order', words:['best','the','is','she','runner'], answer:'she is the best runner', emoji:'🏃' },
+      { type:'fill', sentence:'This T-shirt is cheaper ___ that one.', answer:'than', emoji:'👕', choices:['than','then','that','as'], hint:'比較級' },
+      { type:'fill', sentence:'___ is the post office? Go straight.', answer:'Where', emoji:'📮', choices:['Where','When','How','What'], hint:'問地點' },
+      { type:'fill', sentence:'She ___ the piano every day.', answer:'practices', emoji:'🎹', choices:['practices','practice','practiced','practicing'], hint:'第三人稱' },
+      { type:'fill', sentence:'___ much does this cost? 500 dollars.', answer:'How', emoji:'💴', choices:['How','What','Which','Why'], hint:'問價格' },
+      { type:'fill', sentence:'In ___, we often go hiking.', answer:'spring', emoji:'🌸', choices:['spring','summer','autumn','winter'], hint:'季節' },
+      { type:'fill', sentence:'Tom is not as tall as ___.', answer:'Mike', emoji:'📏', choices:['Mike','him','her','them'], hint:'同等比較' },
+      { type:'listen', text:'She is the most popular student in school.', cn:'她是學校裡最受歡迎的學生。', emoji:'⭐', choices:['She is a popular student.','She is the most popular student in school.','She is more popular than anyone.','She was the most popular student.'], correct:1 },
+      { type:'listen', text:'He bought a new bicycle last week.', cn:'他上週買了一輛新腳踏車。', emoji:'🚲', choices:['He buys a new bicycle last week.','He bought a new motorcycle last week.','He bought a new bicycle last week.','He sold his bicycle last week.'], correct:2 },
+      { type:'listen', text:'We were eating when the phone rang.', cn:'電話響的時候我們正在吃飯。', emoji:'📱', choices:['We ate when the phone rang.','We were eating when the phone rang.','We are eating when the phone rings.','We had eaten when the phone rang.'], correct:1 },
+      { type:'order', words:['is','the','bigger','elephant','than','a','horse'], answer:'the elephant is bigger than a horse', emoji:'🐘' },
+      { type:'order', words:['the','at','stop','traffic','light'], answer:'stop at the traffic light', emoji:'🚦' },
+      { type:'order', words:['cost','does','how','much','shirt','this','?'], answer:'how much does this shirt cost ?', emoji:'👕' },
     ]
   },
+
+
   expert: {
     label:'傳說模式 Legend', color:'#8B5CF6', bg:'#1a0a2e', stars:4, emoji:'💎',
-    desc:'慣用語・高階詞彙・商業英文',
+    desc:'六年級・完成式・被動語態・慣用語・閱讀理解',
     questions:[
+      // listen
       { type:'listen', text:'The proposal was met with considerable skepticism.', cn:'這個提案遭到相當大的懷疑。', emoji:'🏛️',
         choices:['The proposal was approved easily.','The committee liked the proposal.','The proposal was met with considerable skepticism.','The proposal was rejected completely.'], correct:2 },
       { type:'listen', text:'Notwithstanding the challenges, we delivered on time.', cn:'儘管有挑戰，我們仍按時交付。', emoji:'🎯',
@@ -614,6 +771,13 @@ const QB = {
         choices:['The acquisition was approved immediately.','The acquisition required no approval.','The acquisition was subject to regulatory approval.','The regulations blocked the acquisition.'], correct:2 },
       { type:'listen', text:'His remarks were taken out of context.', cn:'他的話被斷章取義了。', emoji:'🗣️',
         choices:["His remarks were misunderstood.","His remarks were taken out of context.","He refused to make any remarks.","His remarks were completely accurate."], correct:1 },
+      { type:'listen', text:'Have you ever been to Japan?', cn:'你去過日本嗎？', emoji:'🗾',
+        choices:["Did you go to Japan?","Have you ever been to Japan?","Have you been to China?","Were you in Japan?"], correct:1 },
+      { type:'listen', text:'The book was written by a famous author.', cn:'這本書由一位著名作者所寫。', emoji:'📖',
+        choices:['A famous author reads the book.','The book will be written soon.','The book was written by a famous author.','The author bought a book.'], correct:2 },
+      { type:'listen', text:'She has already finished her project.', cn:'她已經完成了她的專題。', emoji:'✅',
+        choices:['She will finish her project.','She has already finished her project.','She is finishing her project.','She finished the wrong project.'], correct:1 },
+      // fill
       { type:'fill', sentence:'He let the cat ___ of the bag.', answer:'out', emoji:'🐱',
         choices:['out','in','off','up'], hint:'慣用語' },
       { type:'fill', sentence:"It's raining cats and ___ outside.", answer:'dogs', emoji:'🌧️',
@@ -628,21 +792,44 @@ const QB = {
         choices:['ratified','rectified','notified','verified'], hint:'商業詞彙' },
       { type:'fill', sentence:'The ambiguity was ___ rather than accidental.', answer:'deliberate', emoji:'📝',
         choices:['deliberate','delicate','definite','decisive'], hint:'形容詞' },
+      { type:'fill', sentence:'I have never ___ sushi before.', answer:'eaten', emoji:'🍣',
+        choices:['eaten','eat','ate','eating'], hint:'現在完成式' },
+      { type:'fill', sentence:'The window ___ broken by the ball.', answer:'was', emoji:'🪟',
+        choices:['was','is','were','has'], hint:'被動語態過去式' },
+      { type:'fill', sentence:'This is the book ___ I told you about.', answer:'that', emoji:'📚',
+        choices:['that','which','who','what'], hint:'關係子句' },
+      { type:'fill', sentence:'He ___ his homework yet.', answer:"hasn't done", emoji:'📝',
+        choices:["hasn't done","didn't do","doesn't do","won't do"], hint:'現在完成式否定' },
+      { type:'fill', sentence:'The cake ___ by my mom every Sunday.', answer:'is made', emoji:'🎂',
+        choices:['is made','makes','was made','made'], hint:'被動語態現在式' },
+      // order
       { type:'order', words:['consideration','taken','all','having','into','factors'], answer:'having taken all factors into consideration', emoji:'🧠' },
       { type:'order', words:['matter','the','sooner','is','resolved','the','better'], answer:'the sooner the matter is resolved the better', emoji:'⏱️' },
       { type:'order', words:['would','been','he','have','notified','earlier'], answer:'he would have been notified earlier', emoji:'📬' },
+      { type:'order', words:['have','you','Japan','been','to','ever','?'], answer:'have you ever been to Japan ?', emoji:'🗾' },
+      { type:'order', words:['was','the','book','famous','by','a','written','author'], answer:'the book was written by a famous author', emoji:'📖' },
+      { type:'order', words:['she','already','finished','has','project','her'], answer:'she has already finished her project', emoji:'✅' },
+      { type:'order', words:['that','is','book','the','you','told','me','about'], answer:'that is the book you told me about', emoji:'📚' },
+
+      { type:'fill', sentence:'If I ___ rich, I would travel the world.', answer:'were', emoji:'✈️', choices:['were','was','am','be'], hint:'假設語氣' },
+      { type:'fill', sentence:'The letter ___ sent yesterday.', answer:'was', emoji:'📨', choices:['was','is','were','has'], hint:'被動語態' },
+      { type:'fill', sentence:'I wish I ___ speak French.', answer:'could', emoji:'🇫🇷', choices:['could','can','would','should'], hint:'假設語氣' },
+      { type:'fill', sentence:'She is the person ___ helped me most.', answer:'who', emoji:'👩', choices:['who','which','that','what'], hint:'關係子句' },
+      { type:'fill', sentence:'He has been working here ___ 2018.', answer:'since', emoji:'📅', choices:['since','for','from','during'], hint:'現在完成式時間' },
+      { type:'listen', text:'The project has been completed successfully.', cn:'這個專案已成功完成。', emoji:'✅', choices:['The project will be completed soon.','The project has been started.','The project has been completed successfully.','The project was cancelled.'], correct:2 },
+      { type:'order', words:['been','she','has','working','here','years','three','for'], answer:'she has been working here for three years', emoji:'💼' },
+      { type:'order', words:['were','the','built','pyramids','by','ancient','Egyptians'], answer:'the pyramids were built by ancient Egyptians', emoji:'🏺' },
+      { type:'order', words:['wish','I','could','I','speak','Japanese'], answer:'I wish I could speak Japanese', emoji:'🇯🇵' },
+      { type:'fill', sentence:'If I ___ rich, I would travel the world.', answer:'were', emoji:'✈️', choices:['were','was','am','be'], hint:'假設語氣' },
+      { type:'fill', sentence:'I wish I ___ speak French.', answer:'could', emoji:'🇫🇷', choices:['could','can','would','should'], hint:'假設語氣' },
+      { type:'fill', sentence:'She is the person ___ helped me most.', answer:'who', emoji:'👩', choices:['who','which','that','what'], hint:'關係子句' },
+      { type:'fill', sentence:'He has been working here ___ 2018.', answer:'since', emoji:'📅', choices:['since','for','from','during'], hint:'現在完成式時間' },
+      { type:'fill', sentence:'The meeting has been ___ to next week.', answer:'postponed', emoji:'📅', choices:['postponed','proposed','positioned','processed'], hint:'被動語態商業詞彙' },
+      { type:'listen', text:'Had she known, she would have acted differently.', cn:'如果她知道的話，她的行動就會不同了。', emoji:'🤔', choices:['She knew and acted differently.','She did not know, so she acted the same.','Had she known, she would have acted differently.','She will act differently when she knows.'], correct:2 },
     ]
   }
 };
 
-const VOWEL_IPA = { a:'/æ/', e:'/ɛ/', i:'/ɪ/', o:'/ɒ/', u:'/ʌ/', sh:'/ʃ/', th:'/θ/', ch:'/tʃ/', wh:'/w/' };
-function slotIPA(s, picked) {
-  if (s !== '_') return s==='c' ? '/k/' : s==='t' ? '/t/' : `/${s}/`;
-  if (!picked) return '/  /';
-  return VOWEL_IPA[picked] || `/${picked}/`;
-}
-
-// ── Shared UI ──────────────────────────────────────────────────────────────────
 function SoundWave({ active, color='#5b8def', bars=12 }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:3, height:28 }}>
@@ -672,7 +859,6 @@ function BigButton({ children, color='#3B82F6', onClick, full=false, disabled=fa
   );
 }
 
-// XP bar widget
 function XPBar({ xp, color='#3B82F6', compact=false }) {
   const lv  = getLevel(xp);
   const cur = LEVELS[lv-1] || 0;
@@ -682,7 +868,6 @@ function XPBar({ xp, color='#3B82F6', compact=false }) {
   const rc = rankColors[(lv-1) % rankColors.length];
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-      {/* Rank badge */}
       <div style={{ width:compact?34:42, height:compact?34:42, borderRadius:6, flexShrink:0,
         background:rc, border:'3px solid #000',
         boxShadow:`0 4px 0 #000, 0 0 12px ${rc}88`,
@@ -695,7 +880,6 @@ function XPBar({ xp, color='#3B82F6', compact=false }) {
           <span style={{ color:rc, fontWeight:700 }}>{LEVEL_TITLES[lv-1]}</span>
           {' · '}{xp} XP {nxt ? `→ ${nxt}` : '🏆 MAX'}
         </div>}
-        {/* Game health bar */}
         <div className="xp-track">
           <div className="xp-fill" style={{ width:`${pct}%`,
             background:`linear-gradient(90deg, ${rc}, ${shade(rc,20)})` }}/>
@@ -708,35 +892,30 @@ function XPBar({ xp, color='#3B82F6', compact=false }) {
   );
 }
 
-// ── Tasks modal ───────────────────────────────────────────────────────────────
+
 function TasksModal({ prog, onClose }) {
   const p = ensureDaily(prog);
   const daily = p.daily;
   const tasks = TASK_POOL.filter(t => daily.taskIds.includes(t.id));
   const completedAll = tasks.every(t => daily.done.includes(t.id));
-
   return (
     <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal-box slide-up">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC' }}>📋 每日任務</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>📋 每日任務</div>
             <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>每天重新整理 · 完成獲得 XP 獎勵</div>
           </div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
-            borderRadius:8, width:36, height:36, fontSize:16, cursor:'pointer', color:'#94A3B8',
-            boxShadow:'0 3px 0 #000' }}>✕</button>
+            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
         </div>
-
         {completedAll && (
           <div style={{ background:'#1c0f00', border:'3px solid #F59E0B', borderRadius:10,
             padding:'14px 16px', marginBottom:14, color:'#F59E0B', fontWeight:800, fontSize:14,
             display:'flex', alignItems:'center', gap:10, boxShadow:'0 0 16px rgba(245,158,11,0.3)' }}>
-            <span style={{fontSize:24}}>🎉</span>
-            <span>ALL MISSIONS COMPLETE! 明天再見！</span>
+            <span style={{fontSize:24}}>🎉</span><span>ALL MISSIONS COMPLETE! 明天再見！</span>
           </div>
         )}
-
         <div style={{ display:'grid', gap:10, marginBottom:20 }}>
           {tasks.map(t => {
             const done = daily.done.includes(t.id);
@@ -749,17 +928,14 @@ function TasksModal({ prog, onClose }) {
                   <span style={{ fontSize:26 }}>{t.emoji}</span>
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:800, fontSize:14, color: done ? '#10B981' : '#F8FAFC' }}>
-                      {t.name}
-                      {done && <span style={{ marginLeft:8, fontSize:12, color:'#10B981' }}>✓ COMPLETE!</span>}
+                      {t.name}{done && <span style={{ marginLeft:8, fontSize:12, color:'#10B981' }}>✓ COMPLETE!</span>}
                     </div>
                     <div style={{ fontSize:12, color:'#64748B', fontWeight:400, marginTop:1 }}>{t.desc}</div>
                     <div className="xp-track" style={{ marginTop:8, height:6 }}>
                       <div style={{ height:'100%', width:`${pct}%`, borderRadius:4,
                         background: done ? '#10B981' : '#3B82F6', transition:'width .4s' }}/>
                     </div>
-                    <div style={{ fontSize:11, color:'#475569', marginTop:3, fontWeight:700 }}>
-                      {progress} / {t.target}
-                    </div>
+                    <div style={{ fontSize:11, color:'#475569', marginTop:3, fontWeight:700 }}>{progress} / {t.target}</div>
                   </div>
                   <div style={{ textAlign:'center', minWidth:48 }}>
                     <div style={{ fontSize:13, color:'#F59E0B', fontWeight:800 }}>+{t.reward}</div>
@@ -770,7 +946,6 @@ function TasksModal({ prog, onClose }) {
             );
           })}
         </div>
-
         <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #334155', padding:'12px 16px' }}>
           <div style={{ fontSize:11, fontWeight:600, color:'#64748B', marginBottom:8, letterSpacing:1 }}>📊 TODAY'S STATS</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, textAlign:'center' }}>
@@ -780,7 +955,7 @@ function TasksModal({ prog, onClose }) {
               { label:'完成場次', value: daily.sessions, color:'#8B5CF6' },
             ].map(s => (
               <div key={s.label} style={{ background:'#1E293B', border:`2px solid ${s.color}44`, borderRadius:8, padding:'10px 6px' }}>
-                <div style={{ fontSize:20, fontWeight:800, color:s.color, fontFamily:'Fredoka, sans-serif' }}>{s.value}</div>
+                <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
                 <div style={{ fontSize:11, color:'#64748B', fontWeight:700 }}>{s.label}</div>
               </div>
             ))}
@@ -791,40 +966,30 @@ function TasksModal({ prog, onClose }) {
   );
 }
 
-// ── Badges modal ──────────────────────────────────────────────────────────────
 function BadgesModal({ prog, onClose }) {
   const earned = new Set(prog.badges || []);
   const earnedCount = BADGE_DEFS.filter(b => earned.has(b.id)).length;
-
   return (
     <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal-box slide-up">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC' }}>🏅 成就徽章</div>
-            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>
-              已解鎖 {earnedCount} / {BADGE_DEFS.length} 個
-            </div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🏅 成就徽章</div>
+            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>已解鎖 {earnedCount} / {BADGE_DEFS.length} 個</div>
           </div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
-            borderRadius:8, width:36, height:36, fontSize:16, cursor:'pointer', color:'#94A3B8',
-            boxShadow:'0 3px 0 #000' }}>✕</button>
+            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
         </div>
-
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           {BADGE_DEFS.map(b => {
             const has = earned.has(b.id);
             return (
               <div key={b.id} className={has ? 'badge-pop' : ''} style={{
-                background: has ? '#1c0f00' : '#0F1A2E',
-                border: `3px solid ${has ? '#F59E0B' : '#334155'}`,
+                background: has ? '#1c0f00' : '#0F1A2E', border: `3px solid ${has ? '#F59E0B' : '#334155'}`,
                 borderRadius:10, padding:'14px 12px', textAlign:'center',
-                opacity: has ? 1 : 0.45, transition:'opacity .3s',
-                boxShadow: has ? '0 0 12px rgba(245,158,11,0.25)' : 'none',
-              }}>
+                opacity: has ? 1 : 0.45, boxShadow: has ? '0 0 12px rgba(245,158,11,0.25)' : 'none' }}>
                 <div style={{ fontSize:32, filter: has ? 'none' : 'grayscale(1) brightness(0.5)' }}>{b.emoji}</div>
-                <div style={{ fontSize:13, fontWeight:800, color: has ? '#F59E0B' : '#475569',
-                  fontFamily:'Fredoka, sans-serif', marginTop:4 }}>{b.name}</div>
+                <div style={{ fontSize:13, fontWeight:800, color: has ? '#F59E0B' : '#475569', marginTop:4 }}>{b.name}</div>
                 <div style={{ fontSize:11, color: has ? '#94A3B8' : '#334155', marginTop:2, fontWeight:400 }}>{b.desc}</div>
                 {!has && <div style={{ fontSize:10, color:'#334155', marginTop:4, fontWeight:800 }}>🔒 LOCKED</div>}
               </div>
@@ -836,7 +1001,6 @@ function BadgesModal({ prog, onClose }) {
   );
 }
 
-// ── Avatar Editor Modal ───────────────────────────────────────────────────────
 function AvatarEditor({ prog, onSave, onClose }) {
   const cos0 = ensureCosmetics(prog).cosmetics;
   const [cos, setCos] = React.useState(() => ({
@@ -859,22 +1023,18 @@ function AvatarEditor({ prog, onSave, onClose }) {
   };
 
   const itemTabs = cos.gender
-    ? [['hair','💇 髮型'],['shirt','👕 上衣'],['pants','👖 下裝'],['accessory','✨ 配件']]
+    ? [['hair','💇 髮型'],['shirt','👕 上衣'],['pants','👖 下裝'],['hat','🎩 帽子'],['accessory','✨ 配件']]
     : [];
   const allTabs = [['gender','👤 性別'], ...itemTabs];
 
   return (
     <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal-box slide-up" style={{ maxWidth:420 }}>
-        {/* Header */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
           <div style={{ fontSize:19, fontWeight:800, color:'#F8FAFC' }}>🎭 角色設定</div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
-            borderRadius:8, width:36, height:36, fontSize:16, cursor:'pointer', color:'#94A3B8',
-            boxShadow:'0 3px 0 #000' }}>✕</button>
+            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
         </div>
-
-        {/* Avatar preview */}
         <div style={{ textAlign:'center', marginBottom:12 }}>
           <div className="bobble" style={{ display:'inline-block' }}>
             <Pip size={80} pose="wave" cosmetics={cos}/>
@@ -888,8 +1048,6 @@ function AvatarEditor({ prog, onSave, onClose }) {
             </div>
           )}
         </div>
-
-        {/* Category tabs */}
         <div style={{ display:'flex', gap:4, marginBottom:14, overflowX:'auto', paddingBottom:2 }}>
           {allTabs.map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
@@ -901,13 +1059,11 @@ function AvatarEditor({ prog, onSave, onClose }) {
             }}>{label}</button>
           ))}
         </div>
-
-        {/* Gender selection */}
         {tab === 'gender' && (
           <div style={{ display:'flex', gap:12 }}>
             {[['male','👦','男生','#3B82F6'],['female','👧','女生','#EC4899']].map(([g,icon,label,clr]) => (
               <button key={g} onClick={() => setGender(g)} className="btn-press" style={{
-                flex:1, padding:'20px 12px', borderRadius:12, textAlign:'center', cursor:'pointer',
+                flex:1, padding:'20px 12px', borderRadius:12, textAlign:'center',
                 background: cos.gender===g ? `${clr}22` : '#0F1A2E',
                 border:`3px solid ${cos.gender===g ? clr : '#334155'}`,
                 boxShadow:'0 5px 0 #000',
@@ -919,8 +1075,6 @@ function AvatarEditor({ prog, onSave, onClose }) {
             ))}
           </div>
         )}
-
-        {/* Item grid */}
         {tab !== 'gender' && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, maxHeight:260, overflowY:'auto' }}>
             {(COSMETIC_ITEMS[tab] || [])
@@ -929,9 +1083,8 @@ function AvatarEditor({ prog, onSave, onClose }) {
                 const unlocked = isCosItemUnlocked(item, prog);
                 const equippedId = cos.equipped[tab] || (tab==='hair' ? getDefaultHair(gender) : '');
                 const selected = equippedId === item.id;
-                // 鎖定提示文字
                 const lockHint = !unlocked
-                  ? (item.badge ? `🏅 成就解鎖` : `🔒 Lv.${item.level}`)
+                  ? (item.badge ? '🏅 成就解鎖' : `🔒 Lv.${item.level}`)
                   : null;
                 return (
                   <button key={item.id} onClick={() => unlocked && equip(tab, item.id)}
@@ -951,8 +1104,7 @@ function AvatarEditor({ prog, onSave, onClose }) {
                         : <div style={{ fontSize:18, marginBottom:5 }}>🚫</div>
                     }
                     <div style={{ fontSize:10, fontWeight:700,
-                      color: selected ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569'),
-                      lineHeight:1.2 }}>{item.name}</div>
+                      color: selected ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569'), lineHeight:1.2 }}>{item.name}</div>
                     {lockHint && <div style={{ fontSize:9, color: item.badge ? '#F59E0B' : '#EF4444', fontWeight:800, marginTop:2 }}>{lockHint}</div>}
                     {selected && unlocked && <div style={{ fontSize:10, color:'#10B981', marginTop:2 }}>✓</div>}
                   </button>
@@ -960,13 +1112,9 @@ function AvatarEditor({ prog, onSave, onClose }) {
               })}
           </div>
         )}
-
-        {/* Level unlock hint */}
         <div style={{ marginTop:10, fontSize:11, color:'#475569', fontWeight:400, textAlign:'center' }}>
           🔒 升級可解鎖更多外觀 · 目前 Lv.{lv}
         </div>
-
-        {/* Save */}
         <div style={{ marginTop:12 }}>
           <BigButton onClick={() => onSave(cos)} color='#10B981' full>💾 儲存形象</BigButton>
         </div>
@@ -975,12 +1123,219 @@ function AvatarEditor({ prog, onSave, onClose }) {
   );
 }
 
-// ── Question components ───────────────────────────────────────────────────────
+
+function LeaderboardModal({ prog, user, onClose }) {
+  const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [editNick, setEditNick] = React.useState(false);
+  const [nick, setNick] = React.useState(prog.nickname || '');
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    sb.from('user_progress')
+      .select('user_id, progress')
+      .order('progress->xp', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (data) {
+          const ranked = data.map((row, i) => ({
+            rank: i + 1,
+            user_id: row.user_id,
+            xp: parseInt(row.progress?.xp || 0),
+            nickname: row.progress?.nickname || '冒險者',
+            level: getLevel(parseInt(row.progress?.xp || 0)),
+          }));
+          setRows(ranked);
+        }
+        setLoading(false);
+      });
+  }, []);
+
+  const saveNickname = async () => {
+    setSaving(true);
+    const newProg = { ...prog, nickname: nick };
+    if (user) await saveProgToDB(user.id, newProg);
+    setSaving(false);
+    setEditNick(false);
+    // refresh
+    setRows(r => r.map(row => row.user_id === user?.id ? { ...row, nickname: nick } : row));
+  };
+
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-box slide-up">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🏆 排行榜</div>
+            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>TOP 20 · 按 XP 排名</div>
+          </div>
+          <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
+            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
+        </div>
+
+        {/* Edit nickname */}
+        {editNick ? (
+          <div style={{ display:'flex', gap:8, marginBottom:14, alignItems:'center' }}>
+            <input value={nick} onChange={e=>setNick(e.target.value)} className="rb-input" style={{ flex:1 }}
+              placeholder="輸入暱稱..." maxLength={16}/>
+            <button onClick={saveNickname} disabled={saving} className="btn-press" style={{
+              padding:'10px 14px', background:'#10B981', border:'3px solid #000', borderRadius:8,
+              color:'#fff', fontWeight:800, cursor:'pointer', boxShadow:'0 3px 0 #065F46' }}>
+              {saving ? '...' : '儲存'}
+            </button>
+            <button onClick={()=>setEditNick(false)} className="btn-press" style={{
+              padding:'10px 14px', background:'#1E293B', border:'3px solid #334155', borderRadius:8,
+              color:'#94A3B8', fontWeight:800, cursor:'pointer', boxShadow:'0 3px 0 #000' }}>✕</button>
+          </div>
+        ) : (
+          <button onClick={()=>{setNick(prog.nickname||'');setEditNick(true);}} className="btn-press" style={{
+            width:'100%', marginBottom:14, padding:'8px', background:'#1E293B', border:'3px solid #334155',
+            borderRadius:8, color:'#94A3B8', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 3px 0 #000' }}>
+            ✏️ 改暱稱 (現在：{prog.nickname || '冒險者'})
+          </button>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign:'center', padding:24, color:'#64748B' }}>載入中...</div>
+        ) : (
+          <div style={{ display:'grid', gap:6 }}>
+            {rows.map(row => {
+              const isMe = row.user_id === user?.id;
+              const rankColors = ['#FFD700','#C0C0C0','#CD7F32'];
+              const rankColor = row.rank <= 3 ? rankColors[row.rank-1] : '#334155';
+              return (
+                <div key={row.user_id} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderRadius:10,
+                  background: isMe ? '#1E3A8A' : '#0F1A2E',
+                  border: `3px solid ${isMe ? '#3B82F6' : (row.rank<=3?rankColor:'#334155')}`,
+                  boxShadow: isMe ? '0 0 12px rgba(59,130,246,0.4)' : 'none',
+                }}>
+                  <div style={{ width:32, height:32, borderRadius:6, display:'flex', alignItems:'center',
+                    justifyContent:'center', background: row.rank<=3?rankColor:'#1E293B',
+                    border:'2px solid #000', flexShrink:0 }}>
+                    <span style={{ fontSize:14, fontWeight:800, color: row.rank<=3?'#000':'#94A3B8' }}>
+                      {row.rank<=3 ? ['🥇','🥈','🥉'][row.rank-1] : row.rank}
+                    </span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:800, color: isMe?'#93C5FD':'#F8FAFC',
+                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {row.nickname}{isMe && <span style={{ color:'#F59E0B', marginLeft:6 }}>(你)</span>}
+                    </div>
+                    <div style={{ fontSize:11, color:'#64748B', fontWeight:700 }}>Lv.{row.level} {LEVEL_TITLES[row.level-1]}</div>
+                  </div>
+                  <div style={{ textAlign:'right', flexShrink:0 }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#F59E0B' }}>{row.xp.toLocaleString()}</div>
+                    <div style={{ fontSize:10, color:'#64748B', fontWeight:700 }}>XP</div>
+                  </div>
+                </div>
+              );
+            })}
+            {rows.length === 0 && (
+              <div style={{ textAlign:'center', padding:20, color:'#475569' }}>暫無數據</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+function LevelMapModal({ prog, onClose }) {
+  const [selected, setSelected] = React.useState(null);
+  const lv = getLevel(prog.xp);
+  const allCats = Object.keys(COSMETIC_ITEMS);
+
+  const getNodeItems = (nodeLv) => {
+    const items = [];
+    allCats.forEach(cat => {
+      COSMETIC_ITEMS[cat].forEach(item => {
+        if (item.level === nodeLv) items.push({ ...item, cat });
+      });
+    });
+    return items;
+  };
+
+  const isBoss = (n) => n % 10 === 0;
+
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-box slide-up" style={{ maxWidth:520 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🗺️ 等級地圖</div>
+            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>50 關卡 · 點擊查看解鎖內容</div>
+          </div>
+          <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
+            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, marginBottom:16 }}>
+          {Array.from({length:50}, (_,i) => i+1).map(n => {
+            const unlocked = n <= lv;
+            const isCurrent = n === lv;
+            const boss = isBoss(n);
+            return (
+              <button key={n} onClick={() => setSelected(n === selected ? null : n)}
+                style={{
+                  padding:'8px 4px', borderRadius:8, textAlign:'center',
+                  background: isCurrent ? '#1E3A8A' : (unlocked ? '#1E293B' : '#0F1A2E'),
+                  border: `3px solid ${isCurrent ? '#3B82F6' : (boss ? '#F59E0B' : (unlocked ? '#334155' : '#1E293B'))}`,
+                  cursor:'pointer', position:'relative',
+                  boxShadow: isCurrent ? '0 0 10px rgba(59,130,246,0.5)' : (boss && unlocked ? '0 0 8px rgba(245,158,11,0.4)' : 'none'),
+                  opacity: unlocked ? 1 : 0.4,
+                }}>
+                {boss && <div style={{ fontSize:8, color:'#F59E0B', fontWeight:800 }}>BOSS</div>}
+                <div style={{ fontSize:13, fontWeight:800, color: isCurrent ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569') }}>
+                  {isCurrent ? '★' : (boss ? '💀' : n)}
+                </div>
+                {isCurrent && <div style={{ fontSize:7, color:'#93C5FD', fontWeight:800 }}>NOW</div>}
+                {getNodeItems(n).length > 0 && (
+                  <div style={{ fontSize:7, color:'#F59E0B', fontWeight:800 }}>+{getNodeItems(n).length}</div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {selected && (
+          <div style={{ background:'#0F1A2E', border:'3px solid #334155', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ fontSize:14, fontWeight:800, color:'#F8FAFC', marginBottom:10 }}>
+              {isBoss(selected) ? '💀 BOSS 關卡' : `⭐ 等級 ${selected}`}
+              {selected === lv && <span style={{ marginLeft:8, color:'#3B82F6', fontSize:12 }}>← 你在這裡</span>}
+            </div>
+            {getNodeItems(selected).length > 0 ? (
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {getNodeItems(selected).map((item, i) => (
+                  <div key={i} style={{ padding:'8px 12px', borderRadius:8, background:'#1E293B',
+                    border:'2px solid #334155', display:'flex', alignItems:'center', gap:8 }}>
+                    {item.color
+                      ? <div style={{ width:20, height:20, borderRadius:4, background:item.color, border:'2px solid rgba(0,0,0,0.5)', flexShrink:0 }}/>
+                      : <span style={{ fontSize:16 }}>{item.icon || '🚫'}</span>
+                    }
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:800, color:'#F8FAFC' }}>{item.name}</div>
+                      <div style={{ fontSize:10, color:'#64748B' }}>{item.cat}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color:'#475569', fontSize:13 }}>此關卡無解鎖道具</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ListenQuestion({ q, onAnswer }) {
   const [choices] = React.useState(() => shuffle(q.choices.map((c,i) => ({ label:c, origIdx:i }))));
-  const [selected,  setSelected]  = React.useState(null);  // highlighted, not yet submitted
-  const [confirmed, setConfirmed] = React.useState(false); // answer submitted
-  const [playing,   setPlaying]   = React.useState(false);
+  const [selected, setSelected] = React.useState(null);
+  const [confirmed, setConfirmed] = React.useState(false);
+  const [playing, setPlaying] = React.useState(false);
 
   const play = () => {
     setPlaying(true);
@@ -1003,12 +1358,9 @@ function ListenQuestion({ q, onAnswer }) {
         <div style={{ fontSize:50, marginBottom:12 }}>{q.emoji}</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:14, background:'#0F1A2E',
           border:'3px solid #334155', borderRadius:999, padding:'10px 20px', cursor:'pointer' }} onClick={play}>
-          <div style={{ width:44, height:44, borderRadius:'50%',
-            background: playing ? '#EF4444' : '#3B82F6',
-            display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s',
-            boxShadow:`0 4px 0 #000` }}>
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff">
-              <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+          <div style={{ width:44, height:44, borderRadius:'50%', background: playing ? '#EF4444' : '#3B82F6',
+            display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 0 #000', transition:'background .2s' }}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M3 9v6h4l5 5V4L7 9H3z"/>
               {playing && <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.73 2.5-2.25 2.5-4.03zm2.5 0c0 2.89-1.57 5.43-4 6.83v-2.19c1.29-1.14 2-2.82 2-4.64s-.71-3.5-2-4.64V5.17c2.43 1.4 4 3.94 4 6.83z"/>}
             </svg>
           </div>
@@ -1018,12 +1370,11 @@ function ListenQuestion({ q, onAnswer }) {
       </div>
       <div style={{ display:'grid', gap:10 }}>
         {choices.map((c, i) => {
-          const isCorrect  = c.origIdx === q.correct;
+          const isCorrect = c.origIdx === q.correct;
           const isSelected = selected === i;
           let bg='#0F1A2E', border='3px solid #334155', clr='#F8FAFC', sh='0 3px 0 #000';
-          if (!confirmed && isSelected) {
-            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 3px 0 #1E3A8A';
-          } else if (confirmed) {
+          if (!confirmed && isSelected) { bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 3px 0 #1E3A8A'; }
+          else if (confirmed) {
             if (isCorrect)       { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
             else if (isSelected) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
             else                 { clr='#475569'; sh='none'; }
@@ -1032,20 +1383,17 @@ function ListenQuestion({ q, onAnswer }) {
             <button key={i} onClick={() => !confirmed && setSelected(i)} disabled={confirmed} style={{
               background:bg, border, color:clr, borderRadius:10, padding:'14px 18px',
               fontSize:14, fontWeight:700, textAlign:'left', cursor:confirmed?'default':'pointer',
-              boxShadow:sh, transition:'all .2s',
-              display:'flex', alignItems:'center', gap:10, fontFamily:'Fredoka, sans-serif',
+              boxShadow:sh, transition:'all .2s', display:'flex', alignItems:'center', gap:10, fontFamily:'Fredoka, sans-serif',
             }}>
-              <span style={{ fontSize:15, fontWeight:800,
-                color: !confirmed && isSelected ? '#93C5FD' : '#475569', minWidth:22,
-                background:'#1E293B', borderRadius:4, padding:'1px 5px' }}>{String.fromCharCode(65+i)}</span>
+              <span style={{ fontSize:15, fontWeight:800, color: !confirmed&&isSelected?'#93C5FD':'#475569',
+                minWidth:22, background:'#1E293B', borderRadius:4, padding:'1px 5px' }}>{String.fromCharCode(65+i)}</span>
               <span>{c.label}</span>
-              {confirmed && isCorrect  && <span style={{ marginLeft:'auto', color:'#10B981', fontSize:20 }}>✓</span>}
+              {confirmed && isCorrect   && <span style={{ marginLeft:'auto', color:'#10B981', fontSize:20 }}>✓</span>}
               {confirmed && isSelected && !isCorrect && <span style={{ marginLeft:'auto', color:'#EF4444', fontSize:20 }}>✕</span>}
             </button>
           );
         })}
       </div>
-      {/* Confirm button */}
       {selected !== null && !confirmed && (
         <div style={{ marginTop:12 }}>
           <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
@@ -1064,8 +1412,8 @@ function ListenQuestion({ q, onAnswer }) {
 }
 
 function PhonicsQuestion({ q, onAnswer }) {
-  const [picked,    setPicked]   = React.useState(null);   // selected letter
-  const [answered,  setAnswered] = React.useState(false);  // confirmed
+  const [picked, setPicked] = React.useState(null);
+  const [answered, setAnswered] = React.useState(false);
   const [choices] = React.useState(() => shuffle(q.choices));
 
   const confirm = () => {
@@ -1099,8 +1447,7 @@ function PhonicsQuestion({ q, onAnswer }) {
               <div key={i} style={{ width:64, height:80, borderRadius:12, background:bg, border:bdr,
                 display:'flex', alignItems:'center', justifyContent:'center',
                 fontSize:44, fontWeight:800, color: isBlank ? clr : '#F8FAFC',
-                fontFamily:'Fredoka, sans-serif',
-                boxShadow: !isBlank ? '0 3px 0 #000' : 'none', transition:'all .2s' }}>
+                fontFamily:'Fredoka, sans-serif', transition:'all .2s' }}>
                 {isBlank ? (picked||'') : s}
               </div>
             );
@@ -1118,10 +1465,9 @@ function PhonicsQuestion({ q, onAnswer }) {
         {choices.map(letter => {
           const isCorrect=letter===q.answer, isPicked=letter===picked;
           let bg='#1E293B', clr='#F8FAFC', bdr='3px solid #334155', sh='0 4px 0 #000';
-          if (!answered && isPicked) {
-            bg='#1E3A8A'; clr='#93C5FD'; bdr='3px solid #3B82F6'; sh='0 4px 0 #1E3A8A';
-          } else if (answered) {
-            if (isCorrect) { bg='#10B981'; clr='#fff'; bdr='3px solid #000'; sh='none'; }
+          if (!answered && isPicked) { bg='#1E3A8A'; clr='#93C5FD'; bdr='3px solid #3B82F6'; sh='0 4px 0 #1E3A8A'; }
+          else if (answered) {
+            if (isCorrect)  { bg='#10B981'; clr='#fff'; bdr='3px solid #000'; sh='none'; }
             else if (isPicked) { bg='#EF4444'; clr='#fff'; bdr='3px solid #000'; sh='none'; }
             else { bg='#0F1A2E'; clr='#334155'; bdr='3px solid #1E293B'; sh='none'; }
           }
@@ -1130,14 +1476,11 @@ function PhonicsQuestion({ q, onAnswer }) {
               className={!answered?'btn-press':''} style={{
                 width:64, height:64, borderRadius:10, background:bg, border:bdr,
                 fontSize:28, fontWeight:800, color:clr, cursor:answered?'default':'pointer',
-                boxShadow:sh, fontFamily:'Fredoka, sans-serif',
-                opacity:answered&&!isCorrect&&!isPicked?0.4:1,
-                transform:isPicked&&answered?'scale(1.08)':'scale(1)', transition:'all .2s',
+                boxShadow:sh, fontFamily:'Fredoka, sans-serif', transition:'all .2s',
               }}>{letter}</button>
           );
         })}
       </div>
-      {/* Confirm button */}
       {picked && !answered && (
         <div style={{ marginTop:14 }}>
           <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
@@ -1159,8 +1502,8 @@ function PhonicsQuestion({ q, onAnswer }) {
 
 function FillQuestion({ q, onAnswer }) {
   const [choices] = React.useState(() => shuffle(q.choices.map((c,i)=>({label:c,origIdx:i}))));
-  const [selected,  setSelected]  = React.useState(null);  // highlighted index
-  const [confirmed, setConfirmed] = React.useState(false); // submitted
+  const [selected, setSelected] = React.useState(null);
+  const [confirmed, setConfirmed] = React.useState(false);
 
   const confirm = () => {
     if (selected === null || confirmed) return;
@@ -1181,16 +1524,9 @@ function FillQuestion({ q, onAnswer }) {
           <span style={{
             display:'inline-block', minWidth:80, padding:'2px 12px', margin:'0 4px',
             borderRadius:8, verticalAlign:'middle',
-            background: selected===null ? 'rgba(139,92,246,0.15)'
-              : (!confirmed ? '#1E3A8A'
-                : (choices[selected].label===q.answer ? '#052e16' : '#2d0f0f')),
-            border:`3px ${selected===null?'dashed':'solid'} ${
-              selected===null ? '#8B5CF6'
-              : (!confirmed ? '#3B82F6'
-                : (choices[selected].label===q.answer ? '#10B981' : '#EF4444'))}`,
-            color: selected===null ? '#8B5CF6'
-              : (!confirmed ? '#93C5FD'
-                : (choices[selected].label===q.answer ? '#10B981' : '#EF4444')),
+            background: selected===null ? 'rgba(139,92,246,0.15)' : (!confirmed ? '#1E3A8A' : (choices[selected].label===q.answer ? '#052e16' : '#2d0f0f')),
+            border:`3px ${selected===null?'dashed':'solid'} ${selected===null ? '#8B5CF6' : (!confirmed ? '#3B82F6' : (choices[selected].label===q.answer ? '#10B981' : '#EF4444'))}`,
+            color: selected===null ? '#8B5CF6' : (!confirmed ? '#93C5FD' : (choices[selected].label===q.answer ? '#10B981' : '#EF4444')),
             fontWeight:800, fontSize:17, textAlign:'center',
           }}>{selected===null ? '___' : choices[selected].label}</span>
           {parts[1]}
@@ -1201,12 +1537,11 @@ function FillQuestion({ q, onAnswer }) {
         {choices.map((c, i) => {
           const isCorrect=c.label===q.answer, isSelected=selected===i;
           let bg='#1E293B', border='3px solid #334155', clr='#F8FAFC', sh='0 4px 0 #000';
-          if (!confirmed && isSelected) {
-            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 4px 0 #1E3A8A';
-          } else if (confirmed) {
-            if (isCorrect)        { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
-            else if (isSelected)  { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
-            else                  { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
+          if (!confirmed && isSelected) { bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 4px 0 #1E3A8A'; }
+          else if (confirmed) {
+            if (isCorrect)       { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
+            else if (isSelected) { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
+            else                 { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
           }
           return (
             <button key={i} onClick={() => !confirmed && setSelected(i)} disabled={confirmed}
@@ -1216,13 +1551,12 @@ function FillQuestion({ q, onAnswer }) {
                 boxShadow:sh, transition:'all .2s', fontFamily:'Fredoka, sans-serif',
               }}>
               {c.label}
-              {confirmed && isCorrect  && <span style={{marginLeft:6, fontSize:16}}>✓</span>}
+              {confirmed && isCorrect   && <span style={{marginLeft:6, fontSize:16}}>✓</span>}
               {confirmed && isSelected && !isCorrect && <span style={{marginLeft:6, fontSize:16}}>✕</span>}
             </button>
           );
         })}
       </div>
-      {/* Confirm button */}
       {selected !== null && !confirmed && (
         <div style={{ marginTop:12 }}>
           <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
@@ -1230,8 +1564,7 @@ function FillQuestion({ q, onAnswer }) {
       )}
       {confirmed && choices[selected].label!==q.answer && (
         <div style={{ marginTop:12, padding:'10px 14px', borderRadius:10,
-          background:'#1c0f00', border:'3px solid #F59E0B',
-          fontSize:13, fontWeight:700, color:'#F8FAFC' }}>
+          background:'#1c0f00', border:'3px solid #F59E0B', fontSize:13, fontWeight:700, color:'#F8FAFC' }}>
           💡 正確答案：<b style={{color:'#F59E0B'}}>{q.answer}</b>
         </div>
       )}
@@ -1240,13 +1573,13 @@ function FillQuestion({ q, onAnswer }) {
 }
 
 function OrderQuestion({ q, onAnswer }) {
-  const [tiles]    = React.useState(() => shuffle(q.words.map((w,i)=>({word:w,id:i}))));
+  const [tiles] = React.useState(() => shuffle(q.words.map((w,i)=>({word:w,id:i}))));
   const [selected, setSelected] = React.useState([]);
   const [answered, setAnswered] = React.useState(false);
-  const [correct,  setCorrect]  = React.useState(false);
+  const [correct, setCorrect] = React.useState(false);
 
   const remaining = tiles.filter(t => !selected.includes(t.id));
-  const sentence  = selected.map(id => tiles.find(t=>t.id===id).word).join(' ');
+  const sentence = selected.map(id => tiles.find(t=>t.id===id).word).join(' ');
 
   const check = () => {
     const norm = sentence.toLowerCase().replace(/[?!,]/g,'').trim();
@@ -1286,9 +1619,9 @@ function OrderQuestion({ q, onAnswer }) {
       {!answered && (
         <div style={{ display:'flex', gap:10 }}>
           <button onClick={() => setSelected([])} className="btn-press" style={{
-            flex:1, background:'#1E293B', border:'3px solid #334155',
-            borderRadius:8, padding:'12px', fontSize:14, fontWeight:800,
-            cursor:'pointer', color:'#94A3B8', boxShadow:'0 4px 0 #000', fontFamily:'Fredoka, sans-serif' }}>↺ 重置</button>
+            flex:1, background:'#1E293B', border:'3px solid #334155', borderRadius:8, padding:'12px',
+            fontSize:14, fontWeight:800, cursor:'pointer', color:'#94A3B8', boxShadow:'0 4px 0 #000',
+            fontFamily:'Fredoka, sans-serif' }}>↺ 重置</button>
           <BigButton onClick={check} disabled={selected.length<tiles.length} color='#8B5CF6' style={{flex:2}}>
             ✓ 確認答案
           </BigButton>
@@ -1307,100 +1640,15 @@ function OrderQuestion({ q, onAnswer }) {
   );
 }
 
-// ── Quiz screen ───────────────────────────────────────────────────────────────
-// ── Video Question ────────────────────────────────────────────────────────────
-function VideoQuestion({ q, onAnswer }) {
-  const [played,   setPlayed]   = React.useState(false);
-  const [selected, setSelected] = React.useState(null);  // highlighted
-  const [picked,   setPicked]   = React.useState(null);  // confirmed
-  const thumb = `https://img.youtube.com/vi/${q.videoId}/mqdefault.jpg`;
-
-  const confirm = () => {
-    if (selected === null || picked !== null) return;
-    setPicked(selected);
-    onAnswer(selected === q.correct);
-  };
-
-  return (
-    <div>
-      <div style={{ fontSize:12, fontWeight:800, color:'#e94f5b', letterSpacing:0.5, marginBottom:8 }}>
-        🎬 觀看影片後回答問題
-      </div>
-
-      {/* Video embed */}
-      <div style={{ borderRadius:14, overflow:'hidden', marginBottom:14, position:'relative', paddingTop:'56.25%', background:'#000' }}>
-        {played
-          ? <iframe style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', border:'none' }}
-              src={`https://www.youtube.com/embed/${q.videoId}?autoplay=1`}
-              allow="autoplay; encrypted-media" allowFullScreen />
-          : <div onClick={() => setPlayed(true)} style={{
-              position:'absolute', top:0, left:0, width:'100%', height:'100%',
-              background:`url(${thumb}) center/cover no-repeat`,
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-            }}>
-              <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(255,0,0,0.88)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                boxShadow:'0 4px 16px rgba(0,0,0,0.4)' }}>
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-              </div>
-              <div style={{ position:'absolute', bottom:8, right:10, fontSize:11, color:'#fff',
-                fontWeight:700, background:'rgba(0,0,0,0.6)', padding:'2px 8px', borderRadius:6 }}>
-                {q.cn}
-              </div>
-            </div>
-        }
-      </div>
-
-      {/* Question */}
-      <div style={{ fontSize:15, fontWeight:800, color:'#F8FAFC', marginBottom:14, lineHeight:1.4,
-        background:'#0F1A2E', border:'3px solid #334155', borderRadius:10, padding:'12px 14px' }}>
-        {q.question}
-      </div>
-
-      {/* Choices */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-        {q.choices.map((c, i) => {
-          const isRight    = picked !== null && i === q.correct;
-          const isWrong    = picked === i && i !== q.correct;
-          const isSelected = selected === i && picked === null;
-          let bg='#1E293B', border='3px solid #334155', clr='#F8FAFC', sh='0 4px 0 #000';
-          if (isSelected) {
-            bg='#1E3A8A'; border='3px solid #3B82F6'; clr='#93C5FD'; sh='0 4px 0 #1E3A8A';
-          } else if (picked !== null) {
-            if (isRight)       { bg='#052e16'; border='3px solid #10B981'; clr='#10B981'; sh='none'; }
-            else if (isWrong)  { bg='#2d0f0f'; border='3px solid #EF4444'; clr='#EF4444'; sh='none'; }
-            else               { bg='#0F1A2E'; clr='#334155'; border='3px solid #1E293B'; sh='none'; }
-          }
-          return (
-            <button key={i} onClick={() => picked === null && setSelected(i)}
-              className={picked===null?'btn-press':''} style={{
-                padding:'12px 10px', borderRadius:10, fontSize:14, fontWeight:800,
-                cursor: picked===null ? 'pointer' : 'default',
-                background:bg, border, color:clr, boxShadow:sh,
-                fontFamily:'Fredoka, sans-serif', transition:'all .2s',
-              }}>{c}</button>
-          );
-        })}
-      </div>
-      {/* Confirm button */}
-      {selected !== null && picked === null && (
-        <div style={{ marginTop:12 }}>
-          <BigButton onClick={confirm} color='#3B82F6' full>✓ 確認答案</BigButton>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
   const diff = QB[difficulty];
-  const [current,    setCurrent]    = React.useState(0);
-  const [results,    setResults]    = React.useState([]);
-  const [feedback,   setFeedback]   = React.useState(null);
-  const [xpFloats,   setXpFloats]   = React.useState([]);
-  const [showQuit,   setShowQuit]   = React.useState(false);
+  const [current, setCurrent] = React.useState(0);
+  const [results, setResults] = React.useState([]);
+  const [feedback, setFeedback] = React.useState(null);
+  const [xpFloats, setXpFloats] = React.useState([]);
+  const [showQuit, setShowQuit] = React.useState(false);
 
-  const q       = questions[current];
+  const q = questions[current];
   const correct = results.filter(Boolean).length;
 
   const handleAnswer = (isCorrect) => {
@@ -1408,44 +1656,36 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
     setFeedback({ isCorrect });
     if (isCorrect) {
       const id = Date.now();
-      const xp = DIFF_XP[difficulty];
-      setXpFloats(f => [...f, { id, xp }]);
+      setXpFloats(f => [...f, { id, xp: DIFF_XP[difficulty] }]);
       setTimeout(() => setXpFloats(f => f.filter(x => x.id !== id)), 1200);
     }
   };
 
   const next = () => {
     setFeedback(null);
-    if (current + 1 >= questions.length) onFinish([...results, ...(feedback ? [] : [])]);
+    if (current + 1 >= questions.length) onFinish([...results]);
     else setCurrent(c => c+1);
   };
 
-  const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句', video:'🎬 影片' };
+  const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句' };
 
   return (
     <div style={{ maxWidth:600, margin:'0 auto', padding:'20px 16px', position:'relative' }}>
-      {/* Floating XP */}
       {xpFloats.map(f => (
         <div key={f.id} className="xp-pop" style={{
           position:'fixed', top:'38%', left:'50%', transform:'translateX(-50%)',
           fontSize:26, fontWeight:800, color:'#10B981', fontFamily:'Fredoka, sans-serif',
-          pointerEvents:'none', zIndex:100,
-          textShadow:'0 0 20px #10B981, 0 2px 8px rgba(0,0,0,0.8)',
-          background:'rgba(15,26,46,0.85)', padding:'6px 18px', borderRadius:10,
-          border:'2px solid #10B981',
+          pointerEvents:'none', zIndex:100, textShadow:'0 0 20px #10B981, 0 2px 8px rgba(0,0,0,0.8)',
+          background:'rgba(15,26,46,0.85)', padding:'6px 18px', borderRadius:10, border:'2px solid #10B981',
         }}>⚡ +{f.xp} XP</div>
       ))}
 
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-        {/* 退出按鈕 — 明顯紅底 */}
         <button onClick={() => setShowQuit(true)} className="btn-press" style={{
           width:36, height:36, borderRadius:8, border:'3px solid #7F1D1D',
-          background:'#EF4444', color:'#fff',
-          fontSize:16, fontWeight:700, cursor:'pointer',
+          background:'#EF4444', color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer',
           display:'flex', alignItems:'center', justifyContent:'center',
-          flexShrink:0, boxShadow:'0 4px 0 #7F1D1D',
-        }}>✕</button>
-        {/* Pip 人物 */}
+          flexShrink:0, boxShadow:'0 4px 0 #7F1D1D' }}>✕</button>
         <div style={{ flexShrink:0 }}><Pip size={36} pose="idle" cosmetics={cosmetics}/></div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:13, fontWeight:700, color:diff.color, letterSpacing:0.5,
@@ -1455,19 +1695,16 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
         </div>
         <div style={{ flexShrink:0, fontSize:12, fontWeight:600, color:'#94A3B8',
           background:'#1E293B', border:'2px solid #334155', borderRadius:8, padding:'4px 10px' }}>
-          {qLabel[q.type]}
+          {qLabel[q.type] || '📌'}
         </div>
       </div>
 
-      {/* Quit confirmation */}
       {showQuit && (
         <div className="modal-bg">
           <div className="rb-card slide-up" style={{ padding:28, maxWidth:320, width:'100%', textAlign:'center',
             boxShadow:'0 20px 60px rgba(0,0,0,0.6)' }}>
             <div style={{ fontSize:48, marginBottom:8 }}>💀</div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC', fontFamily:'Fredoka, sans-serif', marginBottom:8 }}>
-              QUIT GAME?
-            </div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC', marginBottom:8 }}>QUIT GAME?</div>
             <div style={{ fontSize:13, color:'#EF4444', fontWeight:800, marginBottom:20, lineHeight:1.5,
               background:'rgba(239,68,68,0.1)', border:'2px solid #EF4444', borderRadius:8, padding:'8px 12px' }}>
               ⚠️ 提前結束將無法累積經驗值
@@ -1476,19 +1713,16 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
               <button onClick={() => setShowQuit(false)} className="btn-press" style={{
                 flex:1, padding:'12px 0', borderRadius:8, border:'3px solid #334155',
                 background:'#1E293B', fontSize:14, fontWeight:800, color:'#94A3B8', cursor:'pointer',
-                boxShadow:'0 4px 0 #000', fontFamily:'Fredoka, sans-serif',
-              }}>繼續練習</button>
+                boxShadow:'0 4px 0 #000', fontFamily:'Fredoka, sans-serif' }}>繼續練習</button>
               <button onClick={onQuit} className="btn-press" style={{
                 flex:1, padding:'12px 0', borderRadius:8, border:'3px solid #000',
                 background:'#EF4444', color:'#fff', fontSize:14, fontWeight:800,
-                boxShadow:'0 4px 0 #7F1D1D', cursor:'pointer', fontFamily:'Fredoka, sans-serif',
-              }}>QUIT</button>
+                boxShadow:'0 4px 0 #7F1D1D', cursor:'pointer', fontFamily:'Fredoka, sans-serif' }}>QUIT</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Progress */}
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
         <div className="xp-track" style={{ flex:1 }}>
           <div style={{ height:'100%', width:`${(current/questions.length)*100}%`,
@@ -1510,7 +1744,6 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
         {q.type==='phonics' && <PhonicsQuestion key={current} q={q} onAnswer={handleAnswer}/>}
         {q.type==='fill'    && <FillQuestion    key={current} q={q} onAnswer={handleAnswer}/>}
         {q.type==='order'   && <OrderQuestion   key={current} q={q} onAnswer={handleAnswer}/>}
-        {q.type==='video'   && <VideoQuestion   key={current} q={q} onAnswer={handleAnswer}/>}
 
         {feedback && (
           <div className="slide-up" style={{
@@ -1523,8 +1756,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <span style={{fontSize:30}}>{feedback.isCorrect ? '⚡' : '💀'}</span>
               <div>
-                <div style={{ color:'#fff', fontWeight:800, fontSize:17, fontFamily:'Fredoka, sans-serif',
-                  letterSpacing:1 }}>
+                <div style={{ color:'#fff', fontWeight:800, fontSize:17, fontFamily:'Fredoka, sans-serif', letterSpacing:1 }}>
                   {feedback.isCorrect ? 'EPIC! 答對了！' : 'RESPAWN! 再試一次'}
                 </div>
                 {feedback.isCorrect && (
@@ -1537,8 +1769,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
             <button onClick={next} className="btn-press" style={{
               background:'rgba(0,0,0,0.25)', border:'2px solid rgba(255,255,255,0.4)',
               color:'#fff', borderRadius:8, padding:'8px 16px', fontSize:14, fontWeight:800,
-              cursor:'pointer', whiteSpace:'nowrap', fontFamily:'Fredoka, sans-serif',
-            }}>
+              cursor:'pointer', whiteSpace:'nowrap', fontFamily:'Fredoka, sans-serif' }}>
               {current+1 >= questions.length ? '看結果 →' : '下一題 →'}
             </button>
           </div>
@@ -1548,7 +1779,7 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
   );
 }
 
-// ── Results screen ────────────────────────────────────────────────────────────
+
 function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, onRetry }) {
   const diff    = QB[difficulty];
   const correct = results.filter(Boolean).length;
@@ -1560,6 +1791,21 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
   const { xpGained, bonusXP, streakBonus, streak, newBadges, leveledUp, newLv,
           newlyCompletedTasks, p: newProg } = sessionResult;
 
+  // Preview unlockable items for next 5 levels
+  const previewItems = React.useMemo(() => {
+    if (!leveledUp) return [];
+    const items = [];
+    const allCats = Object.keys(COSMETIC_ITEMS);
+    for (let lv = newLv+1; lv <= Math.min(newLv+5, 50); lv++) {
+      allCats.forEach(cat => {
+        COSMETIC_ITEMS[cat].forEach(item => {
+          if (item.level === lv && !item.badge) items.push({ ...item, cat, unlockLv: lv });
+        });
+      });
+    }
+    return items;
+  }, [leveledUp, newLv]);
+
   React.useEffect(() => {
     if (stars >= 2) speakEn('Excellent! Well done!', 0.9);
   }, []);
@@ -1567,20 +1813,38 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
   return (
     <div style={{ maxWidth:560, margin:'0 auto', padding:'24px 16px', textAlign:'center' }} className="slide-up">
 
-      {/* Level up banner */}
       {leveledUp && (
         <div className="lvl-up rb-card" style={{
-          border:'3px solid #F59E0B', padding:'16px 20px',
-          marginBottom:16, boxShadow:'0 6px 0 #000, 0 0 30px rgba(245,158,11,0.4)',
-        }}>
+          border:'3px solid #F59E0B', padding:'16px 20px', marginBottom:16,
+          boxShadow:'0 6px 0 #000, 0 0 30px rgba(245,158,11,0.4)' }}>
           <div style={{ fontSize:36 }}>🎊</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F59E0B', marginTop:4,
+          <div style={{ fontSize:24, fontWeight:800, color:'#F59E0B', marginTop:4,
             textShadow:'0 0 16px rgba(245,158,11,0.6)' }}>
             LEVEL UP! 等級 {newLv}
           </div>
           <div style={{ fontSize:14, color:'#94A3B8', fontWeight:700, marginTop:4 }}>
             {LEVEL_TITLES[newLv-1]} — 繼續加油！
           </div>
+          {previewItems.length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <div style={{ fontSize:12, color:'#64748B', fontWeight:700, marginBottom:8 }}>
+                🔓 接下來幾級能解鎖的道具：
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center' }}>
+                {previewItems.slice(0, 8).map((item, i) => (
+                  <div key={i} style={{ padding:'6px 10px', borderRadius:8, background:'#0F1A2E',
+                    border:'2px solid #334155', display:'flex', alignItems:'center', gap:6 }}>
+                    {item.color
+                      ? <div style={{ width:14, height:14, borderRadius:3, background:item.color, flexShrink:0 }}/>
+                      : <span style={{ fontSize:12 }}>{item.icon || '🚫'}</span>
+                    }
+                    <span style={{ fontSize:11, fontWeight:700, color:'#F8FAFC' }}>{item.name}</span>
+                    <span style={{ fontSize:10, color:'#F59E0B', fontWeight:800 }}>Lv.{item.unlockLv}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1588,25 +1852,23 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
         <Pip size={80} pose={stars>=2?'cheer':'wave'} cosmetics={newProg.cosmetics}/>
       </div>
       <div style={{ fontSize:36, margin:'6px 0' }}>{['😢','😊','😄','🌟'][stars]}</div>
-      <h2 style={{ fontSize:22, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', marginBottom:4,
+      <h2 style={{ fontSize:22, fontWeight:800, color:'#F8FAFC', marginBottom:4,
         textShadow: stars >= 2 ? `0 0 16px ${diff.color}` : 'none' }}>
         {msgs[stars]}
       </h2>
 
-      {/* Score card */}
       <div className="rb-card" style={{ padding:20, margin:'16px 0' }}>
-        <div style={{ fontSize:56, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:diff.color,
+        <div style={{ fontSize:56, fontWeight:800, color:diff.color,
           textShadow:`0 0 20px ${diff.color}88` }}>{pct}%</div>
         <div style={{ fontSize:14, color:'#94A3B8', fontWeight:400, marginBottom:12 }}>答對 {correct} / {total} 題</div>
 
         <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:14 }}>
           {[0,1,2].map(i => (
-            <div key={i} style={{ fontSize:32, opacity:i<stars?1:0.15, transition:`opacity .3s ${i*0.15}s`,
+            <div key={i} style={{ fontSize:32, opacity:i<stars?1:0.15,
               filter: i<stars ? 'drop-shadow(0 0 8px #F59E0B)' : 'none' }}>⭐</div>
           ))}
         </div>
 
-        {/* Question breakdown */}
         <div style={{ display:'flex', justifyContent:'center', gap:6, flexWrap:'wrap', marginBottom:14 }}>
           {results.map((ok,i) => (
             <div key={i} style={{ width:34, height:34, borderRadius:8, fontSize:14,
@@ -1617,9 +1879,7 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
           ))}
         </div>
 
-        {/* XP breakdown */}
-        <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #F59E0B',
-          padding:'12px 16px', marginBottom:14 }}>
+        <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #F59E0B', padding:'12px 16px', marginBottom:14 }}>
           <div style={{ fontSize:13, fontWeight:800, color:'#F59E0B', marginBottom:8 }}>⚡ 本場 XP 獲得</div>
           <div style={{ display:'grid', gap:4 }}>
             {[
@@ -1641,15 +1901,12 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
           </div>
         </div>
 
-        {/* XP bar */}
         <div style={{ marginBottom:14 }}>
           <XPBar xp={newProg.xp} color={diff.color}/>
         </div>
 
-        {/* New badges */}
         {newBadges.length > 0 && (
-          <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #F59E0B',
-            padding:'12px 16px', marginBottom:14 }}>
+          <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #F59E0B', padding:'12px 16px', marginBottom:14 }}>
             <div style={{ fontSize:13, fontWeight:800, color:'#F59E0B', marginBottom:8 }}>🏅 新解鎖成就！</div>
             <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
               {newBadges.map(b => (
@@ -1662,7 +1919,6 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
           </div>
         )}
 
-        {/* Completed tasks */}
         {newlyCompletedTasks.length > 0 && (
           <div style={{ background:'#052e16', borderRadius:10, padding:'10px 14px', marginBottom:14,
             border:'3px solid #10B981', textAlign:'left' }}>
@@ -1685,8 +1941,7 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
   );
 }
 
-// ── Home screen ───────────────────────────────────────────────────────────────
-function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) {
+function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit, onShowLeaderboard, onShowLevelMap }) {
   const [count, setCount] = React.useState(10);
   const p = ensureDaily(prog);
   const lv = getLevel(p.xp);
@@ -1696,31 +1951,22 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) 
 
   return (
     <div style={{ maxWidth:560, margin:'0 auto', padding:'20px 16px' }}>
-
-      {/* Game Header */}
       <div style={{ textAlign:'center', marginBottom:16 }}>
         <div className="bobble" style={{ display:'inline-block', position:'relative', cursor:'pointer' }}
           onClick={onAvatarEdit} title="點擊編輯角色">
           <Pip size={80} pose="cheer" cosmetics={prog.cosmetics}/>
           <div style={{ position:'absolute', bottom:-2, right:-4, background:'#3B82F6', border:'2px solid #000',
-            borderRadius:6, padding:'2px 6px', fontSize:9, fontWeight:800, color:'#fff',
-            boxShadow:'0 2px 0 #1E3A8A' }}>✏️ 編輯</div>
+            borderRadius:6, padding:'2px 6px', fontSize:9, fontWeight:800, color:'#fff', boxShadow:'0 2px 0 #1E3A8A' }}>✏️ 編輯</div>
         </div>
-        <h1 style={{ fontSize:30, fontWeight:800, fontFamily:'Fredoka, sans-serif',
-          color:'#F8FAFC', margin:'10px 0 2px',
-          textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>
-          ENGLISH QUEST
-        </h1>
+        <h1 style={{ fontSize:30, fontWeight:800, color:'#F8FAFC', margin:'10px 0 2px',
+          textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>ENGLISH QUEST</h1>
         <p style={{ color:'#94A3B8', fontSize:12, fontWeight:400, letterSpacing:0.5 }}>
           SELECT YOUR WORLD — 每次題目都不一樣 🎲
         </p>
       </div>
 
-      {/* Player Card */}
       <div className="rb-card" style={{ padding:'14px 16px', marginBottom:10 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
-          👤 PLAYER STATS
-        </div>
+        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>👤 PLAYER STATS</div>
         <XPBar xp={p.xp}/>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:10 }}>
           {[
@@ -1731,25 +1977,24 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) 
             <div key={s.label} style={{ background:'#0F1A2E', border:`2px solid ${s.color}44`,
               borderRadius:8, padding:'8px 4px', textAlign:'center' }}>
               <div style={{ fontSize:16 }}>{s.icon}</div>
-              <div style={{ fontSize:20, fontWeight:700, color:s.color, fontFamily:'Fredoka, sans-serif' }}>{s.val}</div>
+              <div style={{ fontSize:20, fontWeight:700, color:s.color }}>{s.val}</div>
               <div style={{ fontSize:10, color:'#64748B', fontWeight:400 }}>{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Task & Badge buttons */}
+      {/* Task / Badge / Leaderboard / Map buttons */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10 }}>
         {[
           { icon:'📋', label:'每日任務', sub:`${doneTasks}/3 完成${doneTasks===3?' 🎉':''}`, color:'#3B82F6', onClick:onShowTasks },
           { icon:'🏅', label:'成就徽章', sub:`${(prog.badges||[]).length}/${BADGE_DEFS.length} 解鎖`, color:'#F59E0B', onClick:onShowBadges },
+          { icon:'🏆', label:'排行榜',   sub:'TOP 20 玩家',                                    color:'#EC4899', onClick:onShowLeaderboard },
+          { icon:'🗺️', label:'等級地圖', sub:`目前 Lv.${lv}`,                                  color:'#10B981', onClick:onShowLevelMap },
         ].map(b => (
           <button key={b.label} onClick={b.onClick} className="btn-press" style={{
-            background:'#1E293B', border:`3px solid ${b.color}55`,
-            borderRadius:8, padding:'10px 12px',
-            display:'flex', alignItems:'center', gap:10, cursor:'pointer',
-            boxShadow:`0 4px 0 #000`,
-          }}>
+            background:'#1E293B', border:`3px solid ${b.color}55`, borderRadius:8, padding:'10px 12px',
+            display:'flex', alignItems:'center', gap:10, cursor:'pointer', boxShadow:'0 4px 0 #000' }}>
             <span style={{ fontSize:22 }}>{b.icon}</span>
             <div style={{ textAlign:'left' }}>
               <div style={{ fontSize:13, fontWeight:700, color:'#F8FAFC' }}>{b.label}</div>
@@ -1761,9 +2006,7 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) 
 
       {/* Round selector */}
       <div className="rb-card" style={{ padding:'12px 16px', marginBottom:10, textAlign:'center' }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
-          🎮 SELECT ROUND SIZE
-        </div>
+        <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>🎮 SELECT ROUND SIZE</div>
         <div style={{ display:'flex', justifyContent:'center', gap:8 }}>
           {[5, 10, 15].map(n => (
             <button key={n} onClick={() => setCount(n)} className="btn-press" style={{
@@ -1773,36 +2016,25 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) 
               color: count===n ? '#fff' : '#64748B',
               fontSize:18, fontWeight:800, cursor:'pointer',
               boxShadow: count===n ? '0 4px 0 #1E3A8A' : '0 4px 0 #000',
-              fontFamily:'Fredoka, sans-serif',
             }}>{n}</button>
           ))}
         </div>
       </div>
 
-      {/* World Map / Difficulty cards */}
-      <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>
-        🗺️ SELECT WORLD
-      </div>
+      <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>🗺️ SELECT WORLD</div>
       <div style={{ display:'grid', gap:8 }}>
         {Object.entries(QB).map(([key, d]) => {
           const sessions = prog.diffStats?.[key] || 0;
           return (
             <button key={key} onClick={() => onStart(key, count)} className="btn-press" style={{
-              background: d.bg, border:`3px solid ${d.color}`,
-              borderRadius:10, padding:'14px 16px', textAlign:'left', cursor:'pointer',
-              boxShadow:`0 5px 0 #000`,
-              display:'flex', alignItems:'center', gap:14,
-            }}>
+              background: d.bg, border:`3px solid ${d.color}`, borderRadius:10, padding:'14px 16px',
+              textAlign:'left', cursor:'pointer', boxShadow:'0 5px 0 #000',
+              display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ fontSize:38, filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>{d.emoji}</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:17, fontWeight:800, color:d.color, fontFamily:'Fredoka, sans-serif',
-                  textShadow:`0 0 10px ${d.color}66` }}>{d.label}</div>
+                <div style={{ fontSize:17, fontWeight:800, color:d.color, textShadow:`0 0 10px ${d.color}66` }}>{d.label}</div>
                 <div style={{ fontSize:11, color:'#94A3B8', fontWeight:400, marginTop:1 }}>{d.desc}</div>
-                {sessions > 0 && (
-                  <div style={{ fontSize:10, color:d.color, fontWeight:600, marginTop:3 }}>
-                    ✓ CLEARED {sessions}×
-                  </div>
-                )}
+                {sessions > 0 && <div style={{ fontSize:10, color:d.color, fontWeight:600, marginTop:3 }}>✓ CLEARED {sessions}×</div>}
               </div>
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
                 <div style={{ fontSize:14 }}>{'⭐'.repeat(d.stars)}</div>
@@ -1814,30 +2046,26 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit }) 
       </div>
 
       <div style={{ textAlign:'center', marginTop:16, fontSize:11, color:'#475569', fontWeight:400 }}>
-        👂 聆聽 · 🔤 拼音 · 📝 填空 · 🔀 排句 · 🎬 影片 — 五種題型混合出題
+        👂 聆聽 · 🔤 拼音 · 📝 填空 · 🔀 排句 — 四種題型混合出題
       </div>
     </div>
   );
 }
 
-// ── Login screen ─────────────────────────────────────────────────────────────
+
 function LoginScreen() {
-  const [tab,       setTab]      = React.useState('login'); // login | register
-  const [email,     setEmail]    = React.useState('');
-  const [password,  setPassword] = React.useState('');
-  const [loading,   setLoading]  = React.useState(false);
-  const [error,     setError]    = React.useState('');
-  const [done,      setDone]     = React.useState(''); // success message
+  const [tab, setTab] = React.useState('login');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [done, setDone] = React.useState('');
   const [userCount, setUserCount] = React.useState(null);
 
   React.useEffect(() => {
-    sb.from('site_stats')
-      .select('value').eq('key', 'user_count').single()
+    sb.from('site_stats').select('value').eq('key', 'user_count').single()
       .then(({ data }) => { if (data) setUserCount(data.value); });
   }, []);
-
-  // inputStyle replaced by .rb-input class — kept as reference
-  const inputStyle = {};
 
   const loginGitHub = async () => {
     setLoading(true); setError('');
@@ -1861,10 +2089,9 @@ function LoginScreen() {
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
-      {/* Logo area */}
       <div className="bobble" style={{ marginBottom:10 }}><Pip size={90} pose="wave"/></div>
       <div style={{ textAlign:'center', marginBottom:20 }}>
-        <h1 style={{ fontSize:32, fontWeight:800, fontFamily:'Fredoka, sans-serif', color:'#F8FAFC', margin:'0 0 8px',
+        <h1 style={{ fontSize:32, fontWeight:800, color:'#F8FAFC', margin:'0 0 8px',
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>ENGLISH QUEST</h1>
         {userCount !== null && (
           <div style={{ display:'inline-flex', alignItems:'center', gap:6, marginBottom:8,
@@ -1874,62 +2101,51 @@ function LoginScreen() {
             🟢 已有 <b style={{ fontWeight:800 }}>{userCount}</b> 位玩家加入
           </div>
         )}
-        <div style={{ fontSize:12, color:'#64748B', fontWeight:400, letterSpacing:0.5 }}>
-          登入後可跨裝置同步學習進度
-        </div>
+        <div style={{ fontSize:12, color:'#64748B', fontWeight:400, letterSpacing:0.5 }}>登入後可跨裝置同步學習進度</div>
       </div>
 
       <div className="rb-card" style={{ width:'100%', maxWidth:360, padding:24 }}>
-        {/* Tabs */}
         <div style={{ display:'flex', background:'#0F1A2E', border:'3px solid #334155', borderRadius:10, padding:4, marginBottom:20 }}>
           {[['login','🎮 登入'],['register','✨ 註冊']].map(([t,label]) => (
             <button key={t} onClick={() => { setTab(t); setError(''); setDone(''); }} style={{
               flex:1, padding:'8px 0', borderRadius:8, border:'none', fontSize:14, fontWeight:800,
-              background: tab === t ? '#3B82F6' : 'transparent',
-              color: tab === t ? '#fff' : '#475569',
-              boxShadow: tab === t ? '0 3px 0 #1E3A8A' : 'none',
-              cursor:'pointer', transition:'all 0.15s', fontFamily:'Fredoka, sans-serif',
-            }}>{label}</button>
+              background: tab===t ? '#3B82F6' : 'transparent',
+              color: tab===t ? '#fff' : '#475569',
+              boxShadow: tab===t ? '0 3px 0 #1E3A8A' : 'none',
+              cursor:'pointer', transition:'all 0.15s', fontFamily:'Fredoka, sans-serif' }}>{label}</button>
           ))}
         </div>
 
-        {/* Email form */}
         <form onSubmit={submitEmail} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <input type="email" placeholder="📧 Email" value={email} className="rb-input"
             onChange={e => setEmail(e.target.value)} />
           <input type="password" placeholder="🔒 密碼（至少 6 位）" value={password} className="rb-input"
             onChange={e => setPassword(e.target.value)} />
-
           {error && <div style={{ fontSize:12, color:'#EF4444', fontWeight:800, textAlign:'center',
             background:'rgba(239,68,68,0.1)', border:'2px solid #EF4444', borderRadius:8, padding:'8px' }}>{error}</div>}
           {done  && <div style={{ fontSize:12, color:'#10B981', fontWeight:800, textAlign:'center',
             background:'rgba(16,185,129,0.1)', border:'2px solid #10B981', borderRadius:8, padding:'8px' }}>{done}</div>}
-
           <button type="submit" disabled={loading} className="btn-press" style={{
             width:'100%', padding:'12px 0', borderRadius:8, fontSize:15, fontWeight:800,
             background: loading ? '#334155' : '#3B82F6', color: loading ? '#64748B' : '#fff',
             border:'3px solid #000', boxShadow: loading ? 'none' : '0 5px 0 #1E3A8A',
-            cursor: loading ? 'not-allowed' : 'pointer', fontFamily:'Fredoka, sans-serif',
-          }}>
+            cursor: loading ? 'not-allowed' : 'pointer', fontFamily:'Fredoka, sans-serif' }}>
             {loading ? '請稍候…' : tab === 'login' ? '▶ 開始遊戲' : '✨ 建立帳號'}
           </button>
         </form>
 
-        {/* Divider */}
         <div style={{ display:'flex', alignItems:'center', gap:10, margin:'16px 0' }}>
           <div style={{ flex:1, height:2, background:'#334155' }}/>
           <span style={{ fontSize:12, color:'#475569', fontWeight:800 }}>OR</span>
           <div style={{ flex:1, height:2, background:'#334155' }}/>
         </div>
 
-        {/* GitHub */}
         <button onClick={loginGitHub} disabled={loading} className="btn-press" style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
           padding:'12px 0', background:'#24292e', color:'#fff',
           border:'3px solid #000', borderRadius:8, fontSize:14, fontWeight:800,
           boxShadow:'0 5px 0 #000', cursor: loading ? 'default' : 'pointer',
-          fontFamily:'Fredoka, sans-serif',
-        }}>
+          fontFamily:'Fredoka, sans-serif' }}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
@@ -1940,19 +2156,21 @@ function LoginScreen() {
   );
 }
 
-// ── App root ──────────────────────────────────────────────────────────────────
+
 function App() {
-  const [screen,       setScreen]       = React.useState('home');
-  const [difficulty,   setDifficulty]   = React.useState(null);
-  const [questions,    setQuestions]    = React.useState([]);
-  const [results,      setResults]      = React.useState([]);
-  const [sessionResult,setSessionResult]= React.useState(null);
-  const [prog,            setProg]            = React.useState(() => ensureCosmetics(ensureDaily(loadProg())));
-  const [showTasks,       setShowTasks]       = React.useState(false);
-  const [showBadges,      setShowBadges]      = React.useState(false);
-  const [showAvatarEditor,setShowAvatarEditor]= React.useState(false);
-  const [user,            setUser]            = React.useState(null);
-  const [authLoading,     setAuthLoading]     = React.useState(true);
+  const [screen,            setScreen]            = React.useState('home');
+  const [difficulty,        setDifficulty]        = React.useState(null);
+  const [questions,         setQuestions]         = React.useState([]);
+  const [results,           setResults]           = React.useState([]);
+  const [sessionResult,     setSessionResult]     = React.useState(null);
+  const [prog,              setProg]              = React.useState(() => ensureCosmetics(ensureDaily(loadProg())));
+  const [showTasks,         setShowTasks]         = React.useState(false);
+  const [showBadges,        setShowBadges]        = React.useState(false);
+  const [showAvatarEditor,  setShowAvatarEditor]  = React.useState(false);
+  const [showLeaderboard,   setShowLeaderboard]   = React.useState(false);
+  const [showLevelMap,      setShowLevelMap]      = React.useState(false);
+  const [user,              setUser]              = React.useState(null);
+  const [authLoading,       setAuthLoading]       = React.useState(true);
 
   React.useEffect(() => {
     sb.auth.getSession().then(({ data: { session } }) => {
@@ -2007,12 +2225,9 @@ function App() {
   };
 
   if (authLoading) return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      background:'#0F1A2E' }}>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#0F1A2E' }}>
       <div className="bobble"><Pip size={80} pose="idle"/></div>
-      <div style={{ marginTop:12, fontSize:14, fontWeight:800, color:'#475569', letterSpacing:1, fontFamily:'Fredoka, sans-serif' }}>
-        LOADING...
-      </div>
+      <div style={{ marginTop:12, fontSize:14, fontWeight:800, color:'#475569', letterSpacing:1 }}>LOADING...</div>
     </div>
   );
 
@@ -2020,34 +2235,33 @@ function App() {
 
   return (
     <div>
-      {/* 頂部操作列 */}
       <div style={{ position:'fixed', top:12, right:16, zIndex:500, display:'flex', gap:8 }}>
         {screen === 'home' && (
           <button onClick={() => setShowAvatarEditor(true)} className="btn-press" style={{
             display:'flex', alignItems:'center', gap:5, padding:'6px 10px',
             background:'#1E293B', border:'3px solid #3B82F6', borderRadius:8,
             fontSize:12, fontWeight:800, color:'#93C5FD', cursor:'pointer',
-            boxShadow:'0 3px 0 #1E3A8A', fontFamily:'Fredoka, sans-serif',
-          }}>🎭 角色</button>
+            boxShadow:'0 3px 0 #1E3A8A' }}>🎭 角色</button>
         )}
         <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
           display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
           background:'#1E293B', border:'3px solid #334155', borderRadius:8,
           fontSize:12, fontWeight:800, color:'#94A3B8', cursor:'pointer',
-          boxShadow:'0 3px 0 #000', fontFamily:'Fredoka, sans-serif',
-        }}>
+          boxShadow:'0 3px 0 #000' }}>
           {user.user_metadata?.avatar_url && (
-            <img src={user.user_metadata.avatar_url} style={{ width:20, height:20, borderRadius:'50%',
-              border:'2px solid #334155' }} />
+            <img src={user.user_metadata.avatar_url} style={{ width:20, height:20, borderRadius:'50%', border:'2px solid #334155' }} />
           )}
           登出
         </button>
       </div>
+
       {screen === 'home' && (
         <HomeScreen prog={prog} onStart={startQuiz}
           onShowTasks={() => setShowTasks(true)}
           onShowBadges={() => setShowBadges(true)}
-          onAvatarEdit={() => setShowAvatarEditor(true)}/>
+          onAvatarEdit={() => setShowAvatarEditor(true)}
+          onShowLeaderboard={() => setShowLeaderboard(true)}
+          onShowLevelMap={() => setShowLevelMap(true)}/>
       )}
       {screen === 'quiz' && (
         <QuizScreen
@@ -2057,12 +2271,14 @@ function App() {
       )}
       {screen === 'results' && sessionResult && (
         <ResultsScreen results={results} difficulty={difficulty} questions={questions}
-          sessionResult={sessionResult}
-          onHome={() => setScreen('home')} onRetry={retry}/>
+          sessionResult={sessionResult} onHome={() => setScreen('home')} onRetry={retry}/>
       )}
-      {showTasks        && <TasksModal    prog={prog} onClose={() => setShowTasks(false)}/>}
-      {showBadges       && <BadgesModal   prog={prog} onClose={() => setShowBadges(false)}/>}
-      {showAvatarEditor && <AvatarEditor  prog={prog} onSave={updateCosmetics} onClose={() => setShowAvatarEditor(false)}/>}
+
+      {showTasks        && <TasksModal       prog={prog} onClose={() => setShowTasks(false)}/>}
+      {showBadges       && <BadgesModal      prog={prog} onClose={() => setShowBadges(false)}/>}
+      {showAvatarEditor && <AvatarEditor     prog={prog} onSave={updateCosmetics} onClose={() => setShowAvatarEditor(false)}/>}
+      {showLeaderboard  && <LeaderboardModal prog={prog} user={user} onClose={() => setShowLeaderboard(false)}/>}
+      {showLevelMap     && <LevelMapModal    prog={prog} onClose={() => setShowLevelMap(false)}/>}
     </div>
   );
 }
