@@ -1144,6 +1144,7 @@ function LeaderboardModal({ prog, user, onClose }) {
             xp: parseInt(row.progress?.xp || 0),
             nickname: row.progress?.nickname || '冒險者',
             level: getLevel(parseInt(row.progress?.xp || 0)),
+            cosmetics: row.progress?.cosmetics || null,
           }));
           setRows(ranked);
         }
@@ -1234,6 +1235,11 @@ function LeaderboardModal({ prog, user, onClose }) {
                   <div style={{ textAlign:'right', flexShrink:0 }}>
                     <div style={{ fontSize:14, fontWeight:800, color:'#F59E0B' }}>{row.xp.toLocaleString()}</div>
                     <div style={{ fontSize:10, color:'#64748B', fontWeight:700 }}>XP</div>
+                  </div>
+                  <div style={{ flexShrink:0, width:48, display:'flex', alignItems:'center', justifyContent:'center',
+                    background:'#0F1A2E', borderRadius:8, border:'2px solid #334155', padding:'2px 0',
+                    overflow:'hidden' }}>
+                    <Pip size={44} pose="idle" cosmetics={row.cosmetics && row.cosmetics.gender !== undefined ? row.cosmetics : DEFAULT_COSMETICS} />
                   </div>
                 </div>
               );
