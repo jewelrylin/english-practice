@@ -135,7 +135,7 @@ const STORE_KEY = 'pip_english_v1';
 // 50-level system: L1->L2 costs 100, L2->L3 costs 200 ... L(n)->L(n+1) costs n*100
 const LEVELS = (() => {
   const arr = [0];
-  for (let i = 1; i < 50; i++) arr.push(arr[i-1] + i * 100);
+  for (let i = 1; i < 80; i++) arr.push(arr[i-1] + i * 200);
   return arr;
 })();
 
@@ -149,7 +149,13 @@ const LEVEL_TITLES = [
   'Vocab King','Fluent Speaker','Language Pro','Elite Learner','Scholar',
   'Linguist','Polyglot','Ace Student','Honor Roll',"Dean's List",
   'Distinguished','Brilliant','Exceptional','Outstanding','Extraordinary',
-  'Supreme','Legendary','Mythic','Transcendent','English Master'
+  'Supreme','Legendary','Mythic','Transcendent','English Master',
+  'Language Titan','Prose Master','Epic Scholar','Word Sovereign','Syntax God',
+  'Eloquent Master','Ultimate Speaker','Wisdom Seeker','Infinite Reader','Unstoppable',
+  'Diamond Mind','Platinum Scholar','Gold Standard','Silver Tongue','Crystal Voice',
+  'Rainbow Fluency','Stardust','Nebula Scholar','Galaxy Brain','Cosmic Mind',
+  'Universe','Celestial','Stellar Speaker','Astral Scholar','Ethereal',
+  'Divine Learner','Omniscient','Transcended','Ascended','🏆 ENGLISH GOD',
 ];
 
 const DIFF_XP = { easy:5, medium:10, hard:15, expert:25 };
@@ -157,11 +163,11 @@ const DIFF_XP = { easy:5, medium:10, hard:15, expert:25 };
 function getLevel(xp) {
   let lv = 1;
   for (let i = 1; i < LEVELS.length; i++) { if (xp >= LEVELS[i]) lv = i+1; else break; }
-  return Math.min(lv, 50);
+  return Math.min(lv, 80);
 }
 function nextLevelXP(xp) {
   const lv = getLevel(xp);
-  return lv >= 50 ? null : LEVELS[lv];
+  return lv >= 80 ? null : LEVELS[lv];
 }
 
 
@@ -181,13 +187,21 @@ const BADGE_DEFS = [
 ];
 
 const TASK_POOL = [
-  { id:'q10',     emoji:'📝', name:'勤奮學習',  desc:'今天答 10 題',       key:'answered', target:10, reward:30 },
-  { id:'c5',      emoji:'✅', name:'一鼓作氣',  desc:'今天答對 5 題',      key:'correct',  target:5,  reward:25 },
-  { id:'sess1',   emoji:'🎓', name:'完成練習',  desc:'完成一場練習',        key:'sessions', target:1,  reward:20 },
-  { id:'hard1',   emoji:'💪', name:'挑戰自我',  desc:'完成進階/高級練習',  key:'hardSess', target:1,  reward:35 },
-  { id:'perf1',   emoji:'💯', name:'完美成績',  desc:'拿下一場滿分',        key:'perfect',  target:1,  reward:50 },
-  { id:'str5',    emoji:'🔥', name:'連勝達人',  desc:'單場連對 5 題',      key:'streak',   target:5,  reward:30 },
-  { id:'listen3', emoji:'👂', name:'聆聽練習',  desc:'答對 3 題聆聽題',    key:'listenOk', target:3,  reward:20 },
+  { id:'q10',     emoji:'📝', name:'勤奮學習',   desc:'今天答 10 題',           key:'answered', target:10, reward:30 },
+  { id:'q20',     emoji:'📚', name:'博覽群書',   desc:'今天答 20 題',           key:'answered', target:20, reward:50 },
+  { id:'c5',      emoji:'✅', name:'一鼓作氣',   desc:'今天答對 5 題',          key:'correct',  target:5,  reward:25 },
+  { id:'c15',     emoji:'🎯', name:'精準打擊',   desc:'今天答對 15 題',         key:'correct',  target:15, reward:45 },
+  { id:'sess1',   emoji:'🎓', name:'完成練習',   desc:'完成一場練習',           key:'sessions', target:1,  reward:20 },
+  { id:'sess3',   emoji:'🏃', name:'三場連戰',   desc:'今天完成 3 場練習',      key:'sessions', target:3,  reward:60 },
+  { id:'hard1',   emoji:'💪', name:'挑戰自我',   desc:'完成進階/高級練習',     key:'hardSess', target:1,  reward:35 },
+  { id:'hard2',   emoji:'⚔️', name:'鐵人挑戰',   desc:'完成 2 場高難度練習',   key:'hardSess', target:2,  reward:60 },
+  { id:'perf1',   emoji:'💯', name:'完美成績',   desc:'拿下一場滿分',           key:'perfect',  target:1,  reward:50 },
+  { id:'str5',    emoji:'🔥', name:'連勝達人',   desc:'單場連對 5 題',         key:'streak',   target:5,  reward:30 },
+  { id:'str8',    emoji:'⚡', name:'閃電連勝',   desc:'單場連對 8 題',         key:'streak',   target:8,  reward:55 },
+  { id:'listen3', emoji:'👂', name:'聆聽練習',   desc:'答對 3 題聆聽題',       key:'listenOk', target:3,  reward:20 },
+  { id:'listen8', emoji:'🎧', name:'耳聰目明',   desc:'答對 8 題聆聽題',       key:'listenOk', target:8,  reward:45 },
+  { id:'q5easy',  emoji:'🌱', name:'基礎扎根',   desc:'今天至少答 5 題',       key:'answered', target:5,  reward:15 },
+  { id:'sess2',   emoji:'📖', name:'雙場練習',   desc:'今天完成 2 場練習',     key:'sessions', target:2,  reward:40 },
 ];
 
 
@@ -213,6 +227,17 @@ const COSMETIC_ITEMS = {
     { id:'hair_cyan_m',   name:'青色短髮',  gender:'male',   level:18, color:'#06B6D4' },
     { id:'hair_rainbow_m',name:'彩虹短髮',  gender:'male',   level:25, color:'#FF6B6B' },
     { id:'hair_rainbow_f',name:'彩虹長髮',  gender:'female', level:25, color:'#FF6B6B' },
+    { id:'hair_silver_m', name:'銀色短髮',  gender:'male',   level:30, color:'#CBD5E1' },
+    { id:'hair_silver_f', name:'銀色長髮',  gender:'female', level:30, color:'#CBD5E1' },
+    { id:'hair_flame_m',  name:'火焰短髮',  gender:'male',   level:38, color:'#FB923C' },
+    { id:'hair_flame_f',  name:'火焰長髮',  gender:'female', level:38, color:'#FB923C' },
+    { id:'hair_neon_m',   name:'霓虹短髮',  gender:'male',   level:45, color:'#A3E635' },
+    { id:'hair_neon_f',   name:'霓虹長髮',  gender:'female', level:45, color:'#A3E635' },
+    { id:'hair_cosmic_m', name:'宇宙短髮',  gender:'male',   level:55, color:'#818CF8' },
+    { id:'hair_cosmic_f', name:'宇宙長髮',  gender:'female', level:55, color:'#818CF8' },
+    { id:'hair_galaxy_f', name:'銀河長髮',  gender:'female', level:65, color:'#C4B5FD' },
+    { id:'hair_god_m',    name:'神明髮冠',  gender:'male',   level:75, color:'#FDE68A' },
+    { id:'hair_god_f',    name:'神明靈髮',  gender:'female', level:75, color:'#FDE68A' },
     { id:'hair_bald',     name:'✨ 光頭',   gender:'all',    level:1,  color:null, badge:'daily', icon:'🧑‍🦲' },
   ],
   shirt: [
@@ -232,6 +257,13 @@ const COSMETIC_ITEMS = {
     { id:'shirt_knight', name:'騎士盔甲',   gender:'male',   level:16, color:'#94A3B8' },
     { id:'shirt_galaxy', name:'星河戰袍',   gender:'all',    level:20, color:'#312E81' },
     { id:'shirt_legend', name:'傳說盔甲',   gender:'all',    level:30, color:'#FFD700' },
+    { id:'shirt_ice',    name:'冰晶甲冑',   gender:'all',    level:40, color:'#BAE6FD' },
+    { id:'shirt_lava',   name:'熔岩戰袍',   gender:'all',    level:50, color:'#EF4444' },
+    { id:'shirt_void',   name:'虛空黑袍',   gender:'all',    level:55, color:'#1E1B4B' },
+    { id:'shirt_aurora',  name:'極光禮服',  gender:'female', level:60, color:'#6EE7B7' },
+    { id:'shirt_titan',  name:'泰坦戰甲',   gender:'male',   level:60, color:'#475569' },
+    { id:'shirt_cosmic', name:'宇宙戰袍',   gender:'all',    level:70, color:'#4F46E5' },
+    { id:'shirt_divine', name:'神聖長袍',   gender:'all',    level:78, color:'#FEF9C3' },
   ],
   pants: [
     { id:'pants_blue',   name:'藍色褲子',   gender:'all',    level:1,  color:'#1E40AF' },
@@ -246,6 +278,11 @@ const COSMETIC_ITEMS = {
     { id:'pants_cyan',   name:'青色褲子',   gender:'all',    level:14, color:'#0891B2' },
     { id:'pants_galaxy', name:'星河長褲',   gender:'all',    level:22, color:'#1E1B4B' },
     { id:'pants_legend', name:'傳說戰甲腿', gender:'all',    level:35, color:'#B45309' },
+    { id:'pants_ice',    name:'冰晶甲褲',   gender:'all',    level:45, color:'#7DD3FC' },
+    { id:'pants_lava',   name:'熔岩腿甲',   gender:'all',    level:52, color:'#C2410C' },
+    { id:'pants_void',   name:'虛空褲甲',   gender:'all',    level:60, color:'#312E81' },
+    { id:'pants_divine', name:'神聖長裙',   gender:'female', level:70, color:'#FDE68A' },
+    { id:'pants_god',    name:'天神腿甲',   gender:'all',    level:77, color:'#FCD34D' },
   ],
   accessory: [
     { id:'acc_none',      name:'無配件',    gender:'all',    level:1,  color:null },
@@ -264,6 +301,13 @@ const COSMETIC_ITEMS = {
     { id:'acc_phoenix',   name:'鳳凰羽翼',  gender:'all',    level:42, color:'#F97316' },
     { id:'acc_nebula',    name:'星雲斗篷',  gender:'all',    level:48, color:'#8B5CF6' },
     { id:'acc_legendary', name:'傳說光芒',  gender:'all',    level:50, color:'#FFD700' },
+    { id:'acc_void',      name:'虛空之翼',  gender:'all',    level:55, color:'#1E1B4B' },
+    { id:'acc_ice',       name:'冰晶翅膀',  gender:'all',    level:60, color:'#BAE6FD' },
+    { id:'acc_thunder',   name:'雷電護肩',  gender:'male',   level:63, color:'#FCD34D' },
+    { id:'acc_fairy',     name:'精靈蝶翼',  gender:'female', level:63, color:'#F9A8D4' },
+    { id:'acc_cosmic',    name:'宇宙環帶',  gender:'all',    level:70, color:'#6D28D9' },
+    { id:'acc_divine',    name:'神聖光翼',  gender:'all',    level:76, color:'#FEF3C7' },
+    { id:'acc_god',       name:'天神祥雲',  gender:'all',    level:80, color:'#FDE68A' },
   ],
   hat: [
     { id:'hat_none',      name:'無帽子',    gender:'all',    level:1,  color:null },
@@ -274,6 +318,11 @@ const COSMETIC_ITEMS = {
     { id:'hat_space',     name:'太空頭盔',  gender:'all',    level:24, color:'#1E3A8A' },
     { id:'hat_samurai',   name:'武士盔',    gender:'all',    level:35, color:'#1C1C1C' },
     { id:'hat_mythic',    name:'神話頭冠',  gender:'all',    level:48, color:'#F59E0B' },
+    { id:'hat_void',      name:'虛空面具',  gender:'all',    level:55, color:'#312E81' },
+    { id:'hat_ice',       name:'冰冠',      gender:'all',    level:62, color:'#BAE6FD' },
+    { id:'hat_thunder',   name:'雷霆戰盔',  gender:'all',    level:68, color:'#FCD34D' },
+    { id:'hat_cosmic',    name:'宇宙盔',    gender:'all',    level:72, color:'#4F46E5' },
+    { id:'hat_divine',    name:'神聖光冠',  gender:'all',    level:79, color:'#FEF9C3' },
   ],
 };
 
@@ -379,7 +428,7 @@ function processSession({ prog, results, difficulty, questions }) {
     }
   });
   const allDailyNowDone = taskDefs.length > 0 && taskDefs.every(t => p.daily.done.includes(t.id));
-  if (allDailyNowDone && (prog.daily?.done?.length || 0) < taskDefs.length) p.allDailyDone += 1;
+  if (allDailyNowDone && (prog.daily?.done?.length || 0) < taskDefs.length) p.allDailyDone = (p.allDailyDone || 0) + 1;
 
   const prevBadges = new Set(prog.badges || []);
   const newBadges  = [];
@@ -1300,11 +1349,14 @@ function IsoStone({ gx, gy, w=1, d=1, h=1 }) {
 
 // ── Zones definition ────────────────────────────────────────────────
 const ZONES = [
-  { id:1, name:'🌱 新手村', range:'Lv 1–10',  color:'#22C55E', desc:'English 冒險的起點' },
-  { id:2, name:'⚔️ 城堡區', range:'Lv 11–20', color:'#6B7280', desc:'征服石牆，展現實力' },
+  { id:1, name:'🌱 新手村',   range:'Lv 1–10',  color:'#22C55E', desc:'English 冒險的起點' },
+  { id:2, name:'⚔️ 城堡區',  range:'Lv 11–20', color:'#6B7280', desc:'征服石牆，展現實力' },
   { id:3, name:'🌲 黑暗森林', range:'Lv 21–30', color:'#166534', desc:'神秘的深林等你探索' },
   { id:4, name:'🏔️ 雪山峰頂', range:'Lv 31–40', color:'#93C5FD', desc:'寒風中磨練語言實力' },
-  { id:5, name:'💎 傳說神殿', range:'Lv 41–50', color:'#F59E0B', desc:'最終傳說之境' },
+  { id:5, name:'💎 傳說神殿', range:'Lv 41–50', color:'#F59E0B', desc:'傳說之境的試煉' },
+  { id:6, name:'🔥 熔岩地獄', range:'Lv 51–60', color:'#F97316', desc:'烈焰中鑄造鋼鐵意志' },
+  { id:7, name:'⚡ 雷霆神域', range:'Lv 61–70', color:'#FCD34D', desc:'神明的語言，電光石火' },
+  { id:8, name:'🌌 宇宙終焉', range:'Lv 71–80', color:'#818CF8', desc:'超越極限，抵達彼端' },
 ];
 
 // Character path waypoints on the isometric map (gx,gy coords)
@@ -1364,6 +1416,7 @@ function MapCharacter({ lv, cosmetics }) {
 
 function LevelMapModal({ prog, onClose }) {
   const [hovZone, setHovZone] = React.useState(null);
+  const activeZone = hovZone || currentZone; // 固定顯示當前區域，hover 時切換
   const lv = getLevel(prog.xp);
   const allCats = Object.keys(COSMETIC_ITEMS);
 
@@ -1376,7 +1429,7 @@ function LevelMapModal({ prog, onClose }) {
     return items;
   };
 
-  const currentZone = Math.min(Math.ceil(lv/10), 5);
+  const currentZone = Math.min(Math.ceil(lv/10), 8);
   const pathSvg = PATH_WPS.map((wp,i) => {
     const p = isoXY(wp.gx, wp.gy, 1.2);
     return i===0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`;
@@ -1568,57 +1621,62 @@ function LevelMapModal({ prog, onClose }) {
           </svg>
         </div>
 
-        {/* Zone info panel */}
-        {hovZone && (() => {
-          const zone = ZONES[hovZone-1];
-          const items = getZoneItems(hovZone);
-          const zoneUnlocked = lv >= (hovZone-1)*10+1;
+        {/* Zone info panel — 固定顯示，hover/click 切換區域 */}
+        {(() => {
+          const zone = ZONES[activeZone-1];
+          const items = getZoneItems(activeZone);
+          const zoneUnlocked = lv >= (activeZone-1)*10+1;
           return (
-            <div style={{ padding:'14px 18px', background:'#0F1A2E', borderTop:`3px solid ${zone.color}` }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                <div style={{ fontSize:16, fontWeight:800, color:zone.color }}>{zone.name}</div>
-                <div style={{ fontSize:11, color:'#64748B' }}>{zone.range}</div>
-                {!zoneUnlocked && <div style={{ marginLeft:'auto', background:'#1E293B', border:'2px solid #F59E0B',
-                  borderRadius:6, padding:'2px 8px', fontSize:10, color:'#F59E0B', fontWeight:800 }}>🔒 尚未解鎖</div>}
-                {currentZone===hovZone && <div style={{ marginLeft:'auto', background:'#1E3A8A', border:'2px solid #3B82F6',
-                  borderRadius:6, padding:'2px 8px', fontSize:10, color:'#93C5FD', fontWeight:800 }}>📍 你在這裡</div>}
+            <div style={{ background:'#0F1A2E', borderTop:`3px solid ${zone.color}` }}>
+              {/* Zone tabs */}
+              <div style={{ display:'flex', borderBottom:'2px solid #1E293B', overflowX:'auto' }}>
+                {ZONES.map(z => (
+                  <button key={z.id} onClick={()=>setHovZone(z.id)}
+                    style={{ flex:'0 0 auto', padding:'8px 14px', border:'none', cursor:'pointer',
+                      background: activeZone===z.id ? '#1E293B' : 'transparent',
+                      borderBottom: activeZone===z.id ? `3px solid ${z.color}` : '3px solid transparent',
+                      color: lv>=(z.id-1)*10+1 ? z.color : '#334155',
+                      fontSize:11, fontWeight:800, transition:'all .15s',
+                      opacity: lv>=(z.id-1)*10+1 ? 1 : 0.4,
+                    }}>
+                    {z.name.split(' ')[0]} {z.range}
+                  </button>
+                ))}
               </div>
-              <div style={{ fontSize:11, color:'#94A3B8', marginBottom:10 }}>{zone.desc}</div>
-              {items.length > 0 ? (
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {items.map((item,i) => (
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px',
-                      background:'#1E293B', borderRadius:8, border:`2px solid ${item.level<=lv?'#334155':'#1E293B'}`,
-                      opacity: item.level<=lv ? 1 : 0.5 }}>
-                      {item.color ? <div style={{ width:16,height:16,borderRadius:3,background:item.color,border:'1.5px solid #0004',flexShrink:0 }}/>
-                        : <span style={{ fontSize:13 }}>{item.icon||'🎁'}</span>}
-                      <div>
-                        <div style={{ fontSize:11, fontWeight:800, color:'#F8FAFC' }}>{item.name}</div>
-                        <div style={{ fontSize:9, color:'#64748B' }}>Lv{item.level} · {item.cat}</div>
-                      </div>
-                      {item.level <= lv && <span style={{ fontSize:9, color:'#10B981', fontWeight:800 }}>✓</span>}
-                    </div>
-                  ))}
+              {/* Zone detail */}
+              <div style={{ padding:'12px 16px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <div style={{ fontSize:15, fontWeight:800, color:zone.color }}>{zone.name}</div>
+                  {!zoneUnlocked && <div style={{ background:'#1E293B', border:'2px solid #F59E0B',
+                    borderRadius:6, padding:'1px 7px', fontSize:10, color:'#F59E0B', fontWeight:800 }}>🔒 未解鎖</div>}
+                  {currentZone===activeZone && <div style={{ background:'#1E3A8A', border:'2px solid #3B82F6',
+                    borderRadius:6, padding:'1px 7px', fontSize:10, color:'#93C5FD', fontWeight:800 }}>📍 你在這裡</div>}
+                  <div style={{ marginLeft:'auto', fontSize:10, color:'#64748B' }}>{zone.desc}</div>
                 </div>
-              ) : (
-                <div style={{ color:'#475569', fontSize:12 }}>此區域無道具掉落</div>
-              )}
+                {items.length > 0 ? (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                    {items.map((item,i) => (
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 9px',
+                        background:'#1E293B', borderRadius:7,
+                        border:`2px solid ${item.level<=lv?zone.color+'55':'#1E293B'}`,
+                        opacity: item.level<=lv ? 1 : 0.45 }}>
+                        {item.color ? <div style={{ width:14,height:14,borderRadius:3,background:item.color,border:'1.5px solid #0004',flexShrink:0 }}/>
+                          : <span style={{ fontSize:12 }}>{item.icon||'🎁'}</span>}
+                        <div>
+                          <div style={{ fontSize:10, fontWeight:800, color:'#F8FAFC' }}>{item.name}</div>
+                          <div style={{ fontSize:8, color:'#64748B' }}>Lv{item.level}</div>
+                        </div>
+                        {item.level <= lv && <span style={{ fontSize:9, color:'#10B981' }}>✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color:'#475569', fontSize:12 }}>此區域無道具掉落</div>
+                )}
+              </div>
             </div>
           );
         })()}
-
-        {/* Mini legend */}
-        {!hovZone && (
-          <div style={{ padding:'10px 18px', display:'flex', gap:12, flexWrap:'wrap', background:'#0F1A2E', borderTop:'2px solid #1E293B' }}>
-            <div style={{ fontSize:10, color:'#475569', fontWeight:600 }}>點擊地圖區域查看道具 ·</div>
-            {ZONES.map(z=>(
-              <div key={z.id} style={{ display:'flex', alignItems:'center', gap:4 }}>
-                <div style={{ width:10, height:10, borderRadius:2, background:z.color }}/>
-                <span style={{ fontSize:10, color: lv>=(z.id-1)*10+1 ? '#94A3B8' : '#334155', fontWeight:600 }}>{z.range}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1933,7 +1991,50 @@ function OrderQuestion({ q, onAnswer }) {
   );
 }
 
-function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
+// Boss monsters per zone
+const BOSS_DATA = [
+  { lv:10,  emoji:'👾', name:'像素惡魔',  color:'#EF4444' },
+  { lv:20,  emoji:'🐉', name:'石牆巨龍',  color:'#F59E0B' },
+  { lv:30,  emoji:'🧌', name:'暗林惡靈',  color:'#10B981' },
+  { lv:40,  emoji:'❄️', name:'冰山霸主',  color:'#60A5FA' },
+  { lv:50,  emoji:'💀', name:'深淵死神',  color:'#8B5CF6' },
+  { lv:60,  emoji:'🔥', name:'熔岩泰坦',  color:'#F97316' },
+  { lv:70,  emoji:'⚡', name:'雷霆神君',  color:'#FCD34D' },
+  { lv:80,  emoji:'🌌', name:'宇宙終焉',  color:'#818CF8' },
+];
+function BossAnimation({ playerLevel }) {
+  const boss = BOSS_DATA.find(b => b.lv === playerLevel);
+  if (!boss) return null;
+  const [pos, setPos] = React.useState({ x: 80, y: 20 });
+  const [dir, setDir] = React.useState({ x: 1.2, y: 0.7 });
+  const [flip, setFlip] = React.useState(false);
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setPos(p => {
+        let nx = p.x + dir.x, ny = p.y + dir.y;
+        let dx = dir.x, dy = dir.y;
+        if (nx > 88 || nx < 2) { dx = -dx; setFlip(f => !f); }
+        if (ny > 75 || ny < 5) dy = -dy;
+        setDir({ x: dx, y: dy });
+        return { x: Math.max(2, Math.min(88, nx)), y: Math.max(5, Math.min(75, ny)) };
+      });
+    }, 35);
+    return () => clearInterval(id);
+  }, [dir]);
+  return (
+    <div style={{ position:'fixed', left:`${pos.x}%`, top:`${pos.y}%`, zIndex:50,
+      pointerEvents:'none', transition:'left 0.035s linear, top 0.035s linear',
+      transform:`scaleX(${flip?-1:1})`, fontSize:44, filter:'drop-shadow(0 0 8px ' + boss.color + ')',
+      userSelect:'none' }}>
+      {boss.emoji}
+      <div style={{ position:'absolute', bottom:-14, left:'50%', transform:'translateX(-50%)',
+        fontSize:8, fontWeight:800, color:boss.color, whiteSpace:'nowrap',
+        textShadow:'0 0 6px ' + boss.color, letterSpacing:0.5 }}>{boss.name}</div>
+    </div>
+  );
+}
+
+function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics, playerLevel=1 }) {
   const diff = QB[difficulty];
   const [current, setCurrent] = React.useState(0);
   const [results, setResults] = React.useState([]);
@@ -1962,8 +2063,18 @@ function QuizScreen({ questions, difficulty, onFinish, onQuit, cosmetics }) {
 
   const qLabel = { listen:'👂 聆聽', phonics:'🔤 拼音', fill:'📝 填空', order:'🔀 排句' };
 
+  const isBossLevel = BOSS_DATA.some(b => b.lv === playerLevel);
+
   return (
     <div style={{ maxWidth:600, margin:'0 auto', padding:'20px 16px', position:'relative' }}>
+      <BossAnimation playerLevel={playerLevel}/>
+      {isBossLevel && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:49, textAlign:'center',
+          padding:'4px', background:'rgba(239,68,68,0.15)', borderBottom:'2px solid #EF444466',
+          fontSize:11, fontWeight:800, color:'#FCA5A5', letterSpacing:1, pointerEvents:'none' }}>
+          ⚠️ BOSS 關卡 · {BOSS_DATA.find(b=>b.lv===playerLevel)?.name} 正在巡邏！
+        </div>
+      )}
       {xpFloats.map(f => (
         <div key={f.id} className="xp-pop" style={{
           position:'fixed', top:'38%', left:'50%', transform:'translateX(-50%)',
@@ -2565,7 +2676,8 @@ function App() {
         <QuizScreen
           key={questions.map(q=>q.text||q.word||q.sentence||'').join()}
           questions={questions} difficulty={difficulty} onFinish={finishQuiz}
-          onQuit={() => setScreen('home')} cosmetics={prog.cosmetics}/>
+          onQuit={() => setScreen('home')} cosmetics={prog.cosmetics}
+          playerLevel={getLevel(prog.xp)}/>
       )}
       {screen === 'results' && sessionResult && (
         <ResultsScreen results={results} difficulty={difficulty} questions={questions}
