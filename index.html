@@ -1416,9 +1416,10 @@ function MapCharacter({ lv, cosmetics }) {
 
 function LevelMapModal({ prog, onClose }) {
   const [hovZone, setHovZone] = React.useState(null);
-  const activeZone = hovZone || currentZone; // 固定顯示當前區域，hover 時切換
   const lv = getLevel(prog.xp);
   const allCats = Object.keys(COSMETIC_ITEMS);
+  const currentZone = Math.min(Math.ceil(lv/10), 8);
+  const activeZone = hovZone || currentZone; // 固定顯示當前區域，hover 時切換
 
   const getZoneItems = (zoneId) => {
     const minLv = (zoneId-1)*10+1, maxLv = zoneId*10;
@@ -1428,8 +1429,6 @@ function LevelMapModal({ prog, onClose }) {
     }));
     return items;
   };
-
-  const currentZone = Math.min(Math.ceil(lv/10), 8);
   const pathSvg = PATH_WPS.map((wp,i) => {
     const p = isoXY(wp.gx, wp.gy, 1.2);
     return i===0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`;
