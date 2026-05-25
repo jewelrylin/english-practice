@@ -1250,88 +1250,373 @@ function LeaderboardModal({ prog, user, onClose }) {
 }
 
 
+// ── Isometric map helpers ──────────────────────────────────────────
+const ISO = { tw:56, th:28, bh:18, ox:390, oy:80 };
+function isoXY(gx, gy, gz=0) {
+  return {
+    x: ISO.ox + (gx - gy) * (ISO.tw/2),
+    y: ISO.oy + (gx + gy) * (ISO.th/2) - gz * ISO.bh
+  };
+}
+function pts(arr) { return arr.map(p=>`${p.x},${p.y}`).join(' '); }
+function IsoTile({ gx, gy, gz=0, w=1, d=1, top='#4ADE80', left='#16A34A', right='#15803D' }) {
+  const t = [[gx,gy],[gx+w,gy],[gx+w,gy+d],[gx,gy+d]].map(([x,y])=>isoXY(x,y,gz));
+  const l = [[gx,gy+d,gz],[gx+w,gy+d,gz],[gx+w,gy+d,gz+1],[gx,gy+d,gz+1]].map(([x,y,z])=>isoXY(x,y,z));
+  const r = [[gx+w,gy,gz],[gx+w,gy+d,gz],[gx+w,gy+d,gz+1],[gx+w,gy,gz+1]].map(([x,y,z])=>isoXY(x,y,z));
+  return (<g>
+    <polygon points={pts(l)} fill={left} stroke="#0008" strokeWidth="0.5"/>
+    <polygon points={pts(r)} fill={right} stroke="#0008" strokeWidth="0.5"/>
+    <polygon points={pts(t)} fill={top} stroke="#0008" strokeWidth="0.5"/>
+  </g>);
+}
+function IsoBlock({ gx, gy, gz=0, w=1, d=1, h=1, top, left, right }) {
+  const tiles = [];
+  for(let z=0; z<h; z++) tiles.push(<IsoTile key={z} gx={gx} gy={gy} gz={gz+z} w={w} d={d} top={top} left={left} right={right}/>);
+  return <g>{tiles}</g>;
+}
+// Tree: trunk + crown
+function IsoTree({ gx, gy }) {
+  return (<g>
+    <IsoBlock gx={gx+0.35} gy={gy+0.35} gz={0} w={0.3} d={0.3} h={1} top="#92400E" left="#78350F" right="#6B2D0E"/>
+    <IsoBlock gx={gx+0.1} gy={gy+0.1} gz={1} w={0.8} d={0.8} h={0.8} top="#22C55E" left="#16A34A" right="#15803D"/>
+  </g>);
+}
+// Pine tree
+function IsoPine({ gx, gy }) {
+  return (<g>
+    <IsoBlock gx={gx+0.4} gy={gy+0.4} gz={0} w={0.2} d={0.2} h={0.8} top="#92400E" left="#78350F" right="#6B2D0E"/>
+    <IsoBlock gx={gx+0.15} gy={gy+0.15} gz={0.8} w={0.7} d={0.7} h={0.6} top="#15803D" left="#166534" right="#14532D"/>
+    <IsoBlock gx={gx+0.25} gy={gy+0.25} gz={1.3} w={0.5} d={0.5} h={0.6} top="#16A34A" left="#15803D" right="#14532D"/>
+  </g>);
+}
+// Castle wall segment
+function IsoWall({ gx, gy, w=1, d=0.3, h=2 }) {
+  return <IsoBlock gx={gx} gy={gy} gz={0} w={w} d={d} h={h} top="#9CA3AF" left="#6B7280" right="#4B5563"/>;
+}
+// Stone block
+function IsoStone({ gx, gy, w=1, d=1, h=1 }) {
+  return <IsoBlock gx={gx} gy={gy} gz={0} w={w} d={d} h={h} top="#94A3B8" left="#64748B" right="#475569"/>;
+}
+
+// ── Zones definition ────────────────────────────────────────────────
+const ZONES = [
+  { id:1, name:'🌱 新手村', range:'Lv 1–10',  color:'#22C55E', desc:'English 冒險的起點' },
+  { id:2, name:'⚔️ 城堡區', range:'Lv 11–20', color:'#6B7280', desc:'征服石牆，展現實力' },
+  { id:3, name:'🌲 黑暗森林', range:'Lv 21–30', color:'#166534', desc:'神秘的深林等你探索' },
+  { id:4, name:'🏔️ 雪山峰頂', range:'Lv 31–40', color:'#93C5FD', desc:'寒風中磨練語言實力' },
+  { id:5, name:'💎 傳說神殿', range:'Lv 41–50', color:'#F59E0B', desc:'最終傳說之境' },
+];
+
+// Character path waypoints on the isometric map (gx,gy coords)
+const PATH_WPS = [
+  {gx:1.5,gy:7},{gx:2,gy:6.5},{gx:2.5,gy:6},{gx:3,gy:5.5},{gx:3.5,gy:5.2},   // zone1 Lv1-2
+  {gx:4,gy:5},{gx:4.2,gy:4.8},{gx:4.5,gy:4.6},{gx:5,gy:4.3},{gx:5.5,gy:4},     // zone1 Lv3-10
+  {gx:5.8,gy:3.8},{gx:6,gy:3.5},{gx:6.3,gy:3.2},{gx:6.5,gy:3},{gx:6.8,gy:2.8}, // zone2
+  {gx:7,gy:2.6},{gx:7.2,gy:2.4},{gx:7.4,gy:2.2},{gx:7.5,gy:2},{gx:7.6,gy:1.8}, // zone2
+  {gx:7.5,gy:1.6},{gx:7.3,gy:1.4},{gx:7,gy:1.3},{gx:6.8,gy:1.2},{gx:6.5,gy:1}, // zone3
+  {gx:6.2,gy:0.9},{gx:6,gy:0.8},{gx:5.8,gy:0.7},{gx:5.5,gy:0.6},{gx:5.2,gy:0.5},// zone3
+  {gx:5,gy:0.4},{gx:4.8,gy:0.3},{gx:4.5,gy:0.3},{gx:4.2,gy:0.4},{gx:4,gy:0.5}, // zone4
+  {gx:3.8,gy:0.6},{gx:3.5,gy:0.5},{gx:3.3,gy:0.4},{gx:3,gy:0.3},{gx:2.8,gy:0.2},// zone4
+  {gx:2.5,gy:0.2},{gx:2.3,gy:0.3},{gx:2,gy:0.4},{gx:1.8,gy:0.5},{gx:1.5,gy:0.6},// zone5
+  {gx:1.3,gy:0.5},{gx:1.1,gy:0.4},{gx:0.9,gy:0.3},{gx:0.7,gy:0.2},{gx:0.5,gy:0.1},// zone5
+  {gx:0.3,gy:0}, // Lv50
+];
+
+function levelToWaypoint(lv) {
+  const idx = Math.min(Math.max(lv-1, 0), PATH_WPS.length-1);
+  const wp = PATH_WPS[idx];
+  const p = isoXY(wp.gx, wp.gy, 1.2);
+  return p;
+}
+
+function MapCharacter({ lv, cosmetics }) {
+  const pos = levelToWaypoint(lv);
+  const cos = cosmetics && cosmetics.gender !== undefined ? cosmetics : DEFAULT_COSMETICS;
+  const eq = { ...DEFAULT_COSMETICS.equipped, ...(cos.equipped || {}) };
+  const shirtItem = (COSMETIC_ITEMS.shirt||[]).find(x=>x.id===eq.shirt);
+  const pantsItem = (COSMETIC_ITEMS.pants||[]).find(x=>x.id===eq.pants);
+  const sc = shirtItem?.color||'#EF4444';
+  const pc = pantsItem?.color||'#3B5CF6';
+  const skin = cos.gender==='female' ? '#FBBF99' : '#FBBF24';
+  const s = 0.55; // scale
+  return (
+    <g transform={`translate(${pos.x-14*s},${pos.y-36*s}) scale(${s})`}>
+      {/* shadow */}
+      <ellipse cx="14" cy="38" rx="10" ry="4" fill="#0005"/>
+      {/* body */}
+      <rect x="6" y="16" width="16" height="14" rx="2" fill={sc} stroke="#000" strokeWidth="1.5"/>
+      {/* head */}
+      <rect x="5" y="4" width="18" height="14" rx="3" fill={skin} stroke="#000" strokeWidth="1.5"/>
+      {/* eyes */}
+      <rect x="8" y="8" width="4" height="4" rx="1" fill="#000"/>
+      <rect x="16" y="8" width="4" height="4" rx="1" fill="#000"/>
+      {/* legs */}
+      <rect x="7" y="30" width="6" height="8" rx="1" fill={pc} stroke="#000" strokeWidth="1.5"/>
+      <rect x="15" y="30" width="6" height="8" rx="1" fill={pc} stroke="#000" strokeWidth="1.5"/>
+      {/* arms */}
+      <rect x="0" y="16" width="6" height="10" rx="2" fill={sc} stroke="#000" strokeWidth="1.5"/>
+      <rect x="22" y="16" width="6" height="10" rx="2" fill={sc} stroke="#000" strokeWidth="1.5"/>
+      {/* star above */}
+      <text x="14" y="-2" textAnchor="middle" fontSize="10" fill="#F59E0B">★</text>
+    </g>
+  );
+}
+
 function LevelMapModal({ prog, onClose }) {
-  const [selected, setSelected] = React.useState(null);
+  const [hovZone, setHovZone] = React.useState(null);
   const lv = getLevel(prog.xp);
   const allCats = Object.keys(COSMETIC_ITEMS);
 
-  const getNodeItems = (nodeLv) => {
+  const getZoneItems = (zoneId) => {
+    const minLv = (zoneId-1)*10+1, maxLv = zoneId*10;
     const items = [];
-    allCats.forEach(cat => {
-      COSMETIC_ITEMS[cat].forEach(item => {
-        if (item.level === nodeLv) items.push({ ...item, cat });
-      });
-    });
+    allCats.forEach(cat => COSMETIC_ITEMS[cat].forEach(item => {
+      if (item.level >= minLv && item.level <= maxLv && !item.badge) items.push({ ...item, cat });
+    }));
     return items;
   };
 
-  const isBoss = (n) => n % 10 === 0;
+  const currentZone = Math.min(Math.ceil(lv/10), 5);
+  const pathSvg = PATH_WPS.map((wp,i) => {
+    const p = isoXY(wp.gx, wp.gy, 1.2);
+    return i===0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`;
+  }).join(' ');
 
   return (
-    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal-box slide-up" style={{ maxWidth:520 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-box slide-up" style={{ maxWidth:680, padding:0, overflow:'hidden', background:'#0a1628' }}>
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px',
+          background:'#0F1A2E', borderBottom:'3px solid #334155' }}>
           <div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🗺️ 等級地圖</div>
-            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>50 關卡 · 點擊查看解鎖內容</div>
+            <div style={{ fontSize:18, fontWeight:800, color:'#F8FAFC' }}>🗺️ 冒險地圖</div>
+            <div style={{ fontSize:11, color:'#64748B' }}>Lv {lv} · {ZONES[currentZone-1]?.name} · 點擊區域查看獎勵</div>
           </div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
-            borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
+            borderRadius:8, width:34, height:34, fontSize:15, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, marginBottom:16 }}>
-          {Array.from({length:50}, (_,i) => i+1).map(n => {
-            const unlocked = n <= lv;
-            const isCurrent = n === lv;
-            const boss = isBoss(n);
-            return (
-              <button key={n} onClick={() => setSelected(n === selected ? null : n)}
-                style={{
-                  padding:'8px 4px', borderRadius:8, textAlign:'center',
-                  background: isCurrent ? '#1E3A8A' : (unlocked ? '#1E293B' : '#0F1A2E'),
-                  border: `3px solid ${isCurrent ? '#3B82F6' : (boss ? '#F59E0B' : (unlocked ? '#334155' : '#1E293B'))}`,
-                  cursor:'pointer', position:'relative',
-                  boxShadow: isCurrent ? '0 0 10px rgba(59,130,246,0.5)' : (boss && unlocked ? '0 0 8px rgba(245,158,11,0.4)' : 'none'),
-                  opacity: unlocked ? 1 : 0.4,
-                }}>
-                {boss && <div style={{ fontSize:8, color:'#F59E0B', fontWeight:800 }}>BOSS</div>}
-                <div style={{ fontSize:13, fontWeight:800, color: isCurrent ? '#93C5FD' : (unlocked ? '#F8FAFC' : '#475569') }}>
-                  {isCurrent ? '★' : (boss ? '💀' : n)}
-                </div>
-                {isCurrent && <div style={{ fontSize:7, color:'#93C5FD', fontWeight:800 }}>NOW</div>}
-                {getNodeItems(n).length > 0 && (
-                  <div style={{ fontSize:7, color:'#F59E0B', fontWeight:800 }}>+{getNodeItems(n).length}</div>
-                )}
-              </button>
-            );
-          })}
+        {/* Isometric Map */}
+        <div style={{ overflowX:'auto', background:'linear-gradient(180deg,#87CEEB 0%,#B0E0FF 40%,#7EC8E3 100%)' }}>
+          <svg viewBox="0 0 780 460" style={{ width:'100%', minWidth:560, display:'block' }}>
+            {/* Sky gradient */}
+            <defs>
+              <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1E3A5F"/>
+                <stop offset="100%" stopColor="#2D6A9F"/>
+              </linearGradient>
+              <linearGradient id="goldG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#FDE68A"/>
+                <stop offset="100%" stopColor="#F59E0B"/>
+              </linearGradient>
+            </defs>
+            <rect width="780" height="460" fill="url(#skyG)"/>
+            {/* Clouds */}
+            {[[80,40],[200,25],[500,35],[660,20]].map(([cx,cy],i)=>(
+              <g key={i} opacity="0.6">
+                <ellipse cx={cx} cy={cy} rx="35" ry="14" fill="#fff"/>
+                <ellipse cx={cx+20} cy={cy-5} rx="25" ry="11" fill="#fff"/>
+                <ellipse cx={cx-18} cy={cy-3} rx="20" ry="9" fill="#fff"/>
+              </g>
+            ))}
+
+            {/* ── Zone 1: 新手村 (bottom-left) ── */}
+            {/* Ground */}
+            {[[0,5],[0,6],[0,7],[1,5],[1,6],[1,7],[2,5],[2,6],[2,7],[3,5],[3,6],[4,5],[4,6],[5,5]].map(([gx,gy],i)=>(
+              <IsoTile key={`g1-${i}`} gx={gx} gy={gy} gz={0} w={1} d={1}
+                top={hovZone===1?"#86EFAC":"#4ADE80"} left="#16A34A" right="#15803D"/>
+            ))}
+            {/* Houses */}
+            <IsoBlock gx={1} gy={6} gz={1} w={1.2} d={1.2} h={1} top="#FCA5A5" left="#EF4444" right="#DC2626"/>
+            <IsoBlock gx={1} gy={6} gz={2} w={1.2} d={0.6} h={0.6} top="#F97316" left="#EA580C" right="#C2410C"/>
+            <IsoBlock gx={3} gy={5.5} gz={1} w={1} d={1} h={1.2} top="#93C5FD" left="#3B82F6" right="#2563EB"/>
+            <IsoBlock gx={3} gy={5.5} gz={2.2} w={1} d={0.5} h={0.5} top="#60A5FA" left="#3B82F6" right="#1D4ED8"/>
+            {/* Trees */}
+            <IsoTree gx={0.2} gy={5.2}/><IsoTree gx={4.5} gy={6.5}/><IsoTree gx={2.5} gy={7.5}/>
+            {/* Zone label */}
+            <text x={isoXY(2,7.8,0).x} y={isoXY(2,7.8,0).y+8} textAnchor="middle"
+              fontSize="11" fontWeight="800" fill="#fff" stroke="#000" strokeWidth="3" paintOrder="stroke">🌱 新手村</text>
+            <text x={isoXY(2,7.8,0).x} y={isoXY(2,7.8,0).y+22} textAnchor="middle"
+              fontSize="9" fill="#D1FAE5" fontWeight="600">Lv 1–10</text>
+            {/* Clickable zone overlay */}
+            <polygon points={pts([[0,5],[5,5],[5,8],[0,8]].map(([x,y])=>isoXY(x,y,0)))}
+              fill="transparent" cursor="pointer"
+              onClick={()=>setHovZone(hovZone===1?null:1)}
+              onMouseEnter={()=>setHovZone(1)} onMouseLeave={()=>setHovZone(null)}/>
+
+            {/* ── Zone 2: 城堡 (center-left) ── */}
+            {[[5,3],[5,4],[6,3],[6,4],[7,3],[7,4],[8,3],[8,4]].map(([gx,gy],i)=>(
+              <IsoTile key={`g2-${i}`} gx={gx} gy={gy} gz={0} w={1} d={1}
+                top={hovZone===2?"#D1D5DB":"#9CA3AF"} left="#6B7280" right="#4B5563"/>
+            ))}
+            {/* Castle walls */}
+            <IsoWall gx={5} gy={3} w={3} d={0.3} h={2}/>
+            <IsoWall gx={5} gy={4.7} w={3} d={0.3} h={2}/>
+            <IsoWall gx={5} gy={3} w={0.3} d={2} h={2}/>
+            <IsoWall gx={7.7} gy={3} w={0.3} d={2} h={2}/>
+            {/* Towers */}
+            <IsoBlock gx={5} gy={3} gz={0} w={0.8} d={0.8} h={3} top="#9CA3AF" left="#6B7280" right="#374151"/>
+            <IsoBlock gx={7.2} gy={3} gz={0} w={0.8} d={0.8} h={3} top="#9CA3AF" left="#6B7280" right="#374151"/>
+            <IsoBlock gx={5} gy={4.2} gz={0} w={0.8} d={0.8} h={3} top="#9CA3AF" left="#6B7280" right="#374151"/>
+            {/* Gate */}
+            <IsoBlock gx={6.3} gy={4.7} gz={0} w={0.4} d={0.3} h={1.5} top="#1C1C1E" left="#111" right="#0a0a0a"/>
+            {/* Flags */}
+            <IsoBlock gx={5.2} gy={3.2} gz={3} w={0.1} d={0.1} h={0.8} top="#EF4444" left="#DC2626" right="#B91C1C"/>
+            <IsoBlock gx={7.3} gy={3.2} gz={3} w={0.1} d={0.1} h={0.8} top="#EF4444" left="#DC2626" right="#B91C1C"/>
+            <text x={isoXY(6.5,4.5,3.5).x} y={isoXY(6.5,4.5,3.5).y} textAnchor="middle"
+              fontSize="11" fontWeight="800" fill="#fff" stroke="#000" strokeWidth="3" paintOrder="stroke">⚔️ 城堡</text>
+            <text x={isoXY(6.5,4.5,3.5).x} y={isoXY(6.5,4.5,3.5).y+14} textAnchor="middle"
+              fontSize="9" fill="#E5E7EB" fontWeight="600">Lv 11–20</text>
+            <polygon points={pts([[5,3],[8,3],[8,5],[5,5]].map(([x,y])=>isoXY(x,y,0)))}
+              fill="transparent" cursor="pointer"
+              onClick={()=>setHovZone(hovZone===2?null:2)}
+              onMouseEnter={()=>setHovZone(2)} onMouseLeave={()=>setHovZone(null)}/>
+
+            {/* ── Zone 3: 黑暗森林 (top-center) ── */}
+            {[[4,0],[4,1],[5,0],[5,1],[6,0],[6,1],[7,0],[7,1]].map(([gx,gy],i)=>(
+              <IsoTile key={`g3-${i}`} gx={gx} gy={gy} gz={0} w={1} d={1}
+                top={hovZone===3?"#4ADE80":"#166534"} left="#14532D" right="#052E16"/>
+            ))}
+            <IsoPine gx={4.1} gy={0.1}/><IsoPine gx={5.0} gy={0.8}/><IsoPine gx={6.2} gy={0.2}/>
+            <IsoPine gx={7.1} gy={0.5}/><IsoPine gx={4.5} gy={1.3}/><IsoPine gx={6.8} gy={1.4}/>
+            <IsoPine gx={5.5} gy={1.7}/>
+            {/* Stone path in forest */}
+            <IsoBlock gx={5.4} gy={0.4} gz={0} w={0.2} d={0.2} h={0.1} top="#78716C" left="#57534E" right="#44403C"/>
+            <text x={isoXY(5.5,1.5,2.5).x} y={isoXY(5.5,1.5,2.5).y} textAnchor="middle"
+              fontSize="11" fontWeight="800" fill="#fff" stroke="#000" strokeWidth="3" paintOrder="stroke">🌲 黑暗森林</text>
+            <text x={isoXY(5.5,1.5,2.5).x} y={isoXY(5.5,1.5,2.5).y+14} textAnchor="middle"
+              fontSize="9" fill="#BBF7D0" fontWeight="600">Lv 21–30</text>
+            <polygon points={pts([[4,0],[8,0],[8,2],[4,2]].map(([x,y])=>isoXY(x,y,0)))}
+              fill="transparent" cursor="pointer"
+              onClick={()=>setHovZone(hovZone===3?null:3)}
+              onMouseEnter={()=>setHovZone(3)} onMouseLeave={()=>setHovZone(null)}/>
+
+            {/* ── Zone 4: 雪山 (top-right) ── */}
+            {[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1]].map(([gx,gy],i)=>(
+              <IsoTile key={`g4-${i}`} gx={gx} gy={gy} gz={0} w={1} d={1}
+                top={hovZone===4?"#DBEAFE":"#BFDBFE"} left="#93C5FD" right="#60A5FA"/>
+            ))}
+            {/* Mountain peaks */}
+            <IsoBlock gx={0.5} gy={0.2} gz={0} w={1.5} d={1} h={2} top="#E2E8F0" left="#CBD5E1" right="#94A3B8"/>
+            <IsoBlock gx={0.8} gy={0.4} gz={2} w={0.9} d={0.6} h={1.5} top="#F1F5F9" left="#E2E8F0" right="#CBD5E1"/>
+            <IsoBlock gx={1.0} gy={0.5} gz={3.5} w={0.5} d={0.4} h={1} top="#fff" left="#F1F5F9" right="#E2E8F0"/>
+            <IsoBlock gx={2.5} gy={0.1} gz={0} w={1.2} d={1} h={1.5} top="#E2E8F0" left="#CBD5E1" right="#94A3B8"/>
+            <IsoBlock gx={2.7} gy={0.3} gz={1.5} w={0.8} d={0.6} h={1.2} top="#F1F5F9" left="#E2E8F0" right="#CBD5E1"/>
+            <IsoBlock gx={2.9} gy={0.4} gz={2.7} w={0.4} d={0.3} h={0.8} top="#fff" left="#F1F5F9" right="#E2E8F0"/>
+            {/* Snow trees */}
+            <IsoBlock gx={0.1} gy={1.2} gz={0} w={0.3} d={0.3} h={0.6} top="#92400E" left="#78350F" right="#6B2D0E"/>
+            <IsoBlock gx={-0.05} gy={1.1} gz={0.6} w={0.6} d={0.5} h={0.5} top="#fff" left="#E2E8F0" right="#CBD5E1"/>
+            <text x={isoXY(1.5,1.8,4).x} y={isoXY(1.5,1.8,4).y} textAnchor="middle"
+              fontSize="11" fontWeight="800" fill="#fff" stroke="#1E3A8A" strokeWidth="3" paintOrder="stroke">🏔️ 雪山</text>
+            <text x={isoXY(1.5,1.8,4).x} y={isoXY(1.5,1.8,4).y+14} textAnchor="middle"
+              fontSize="9" fill="#BFDBFE" fontWeight="600">Lv 31–40</text>
+            <polygon points={pts([[0,0],[4,0],[4,2],[0,2]].map(([x,y])=>isoXY(x,y,0)))}
+              fill="transparent" cursor="pointer"
+              onClick={()=>setHovZone(hovZone===4?null:4)}
+              onMouseEnter={()=>setHovZone(4)} onMouseLeave={()=>setHovZone(null)}/>
+
+            {/* ── Zone 5: 傳說神殿 (far top-left) ── */}
+            {[[-1,0],[-1,1],[0,-1],[-1,-1],[0,0],[0,1],[1,-1],[-2,0],[-2,1]].filter(([x])=>x>=-2).map(([gx,gy],i)=>(
+              <IsoTile key={`g5-${i}`} gx={gx} gy={gy} gz={0} w={1} d={1}
+                top={hovZone===5?"#FDE68A":"#F59E0B"} left="#D97706" right="#B45309"/>
+            ))}
+            {/* Temple pillars */}
+            <IsoBlock gx={-0.8} gy={0.1} gz={0} w={0.3} d={0.3} h={3} top="url(#goldG)" left="#D97706" right="#92400E"/>
+            <IsoBlock gx={-0.2} gy={0.1} gz={0} w={0.3} d={0.3} h={3} top="#FDE68A" left="#D97706" right="#92400E"/>
+            <IsoBlock gx={-0.8} gy={0.6} gz={0} w={0.3} d={0.3} h={3} top="#FDE68A" left="#D97706" right="#92400E"/>
+            {/* Temple roof */}
+            <IsoBlock gx={-1} gy={-0.1} gz={3} w={1.5} d={1} h={0.5} top="#FDE68A" left="#D97706" right="#92400E"/>
+            <IsoBlock gx={-0.8} gy={0.1} gz={3.5} w={1.1} d={0.7} h={0.3} top="#FCD34D" left="#F59E0B" right="#D97706"/>
+            {/* Purple gem on top */}
+            <IsoBlock gx={-0.3} gy={0.3} gz={3.8} w={0.3} d={0.3} h={0.4} top="#A78BFA" left="#7C3AED" right="#6D28D9"/>
+            {/* Stars */}
+            {[[-1.5,40],[-0.5,50],[0.3,35]].map(([ox,oy],i)=>(
+              <text key={i} x={isoXY(-0.5,0.5,4.5).x+ox} y={isoXY(-0.5,0.5,4.5).y+oy}
+                fontSize="10" fill="#FCD34D" opacity="0.9">✦</text>
+            ))}
+            <text x={isoXY(-0.3,1.3,5).x} y={isoXY(-0.3,1.3,5).y} textAnchor="middle"
+              fontSize="11" fontWeight="800" fill="#FDE68A" stroke="#92400E" strokeWidth="3" paintOrder="stroke">💎 傳說神殿</text>
+            <text x={isoXY(-0.3,1.3,5).x} y={isoXY(-0.3,1.3,5).y+14} textAnchor="middle"
+              fontSize="9" fill="#FDE68A" fontWeight="600">Lv 41–50</text>
+            <polygon points={pts([[-2,0],[2,0],[2,2],[-2,2]].map(([x,y])=>isoXY(x,y,0)))}
+              fill="transparent" cursor="pointer"
+              onClick={()=>setHovZone(hovZone===5?null:5)}
+              onMouseEnter={()=>setHovZone(5)} onMouseLeave={()=>setHovZone(null)}/>
+
+            {/* ── Path (road) ── */}
+            <path d={pathSvg} fill="none" stroke="#C4A46B" strokeWidth="5" strokeLinecap="round"
+              strokeDasharray="8,4" opacity="0.7"/>
+            <path d={pathSvg} fill="none" stroke="#F5DEB3" strokeWidth="3" strokeLinecap="round"
+              strokeDasharray="8,4" opacity="0.5"/>
+
+            {/* ── Locked overlay for future zones ── */}
+            {lv < 11 && <g opacity="0.35"><rect x={isoXY(5,3,0).x-10} y={isoXY(5,3,0).y-10} width="200" height="120" fill="#000" rx="8"/><text x={isoXY(6.5,3.8,1.5).x} y={isoXY(6.5,3.8,1.5).y} fontSize="16" textAnchor="middle" fill="#F59E0B">🔒</text></g>}
+            {lv < 21 && <g opacity="0.35"><rect x={isoXY(4,0,0).x-10} y={isoXY(4,0,0).y-10} width="200" height="80" fill="#000" rx="8"/><text x={isoXY(5.8,1,1.5).x} y={isoXY(5.8,1,1.5).y} fontSize="16" textAnchor="middle" fill="#F59E0B">🔒</text></g>}
+            {lv < 31 && <g opacity="0.35"><rect x={isoXY(0,0,0).x-10} y={isoXY(0,0,0).y-10} width="200" height="80" fill="#000" rx="8"/><text x={isoXY(1.5,1,1.5).x} y={isoXY(1.5,1,1.5).y} fontSize="16" textAnchor="middle" fill="#F59E0B">🔒</text></g>}
+            {lv < 41 && <g opacity="0.35"><rect x={isoXY(-2,0,0).x-10} y={isoXY(-2,0,0).y-10} width="160" height="80" fill="#000" rx="8"/><text x={isoXY(-0.3,0.8,1.5).x} y={isoXY(-0.3,0.8,1.5).y} fontSize="16" textAnchor="middle" fill="#F59E0B">🔒</text></g>}
+
+            {/* ── Character ── */}
+            <MapCharacter lv={lv} cosmetics={prog.cosmetics}/>
+
+            {/* Current level marker */}
+            {(() => { const p=levelToWaypoint(lv); return (
+              <g>
+                <circle cx={p.x} cy={p.y+16} r="6" fill="#3B82F6" stroke="#fff" strokeWidth="2" opacity="0.85"/>
+                <text x={p.x} y={p.y+20} textAnchor="middle" fontSize="7" fill="#fff" fontWeight="800">Lv{lv}</text>
+              </g>
+            ); })()}
+          </svg>
         </div>
 
-        {selected && (
-          <div style={{ background:'#0F1A2E', border:'3px solid #334155', borderRadius:10, padding:'14px 16px' }}>
-            <div style={{ fontSize:14, fontWeight:800, color:'#F8FAFC', marginBottom:10 }}>
-              {isBoss(selected) ? '💀 BOSS 關卡' : `⭐ 等級 ${selected}`}
-              {selected === lv && <span style={{ marginLeft:8, color:'#3B82F6', fontSize:12 }}>← 你在這裡</span>}
-            </div>
-            {getNodeItems(selected).length > 0 ? (
-              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                {getNodeItems(selected).map((item, i) => (
-                  <div key={i} style={{ padding:'8px 12px', borderRadius:8, background:'#1E293B',
-                    border:'2px solid #334155', display:'flex', alignItems:'center', gap:8 }}>
-                    {item.color
-                      ? <div style={{ width:20, height:20, borderRadius:4, background:item.color, border:'2px solid rgba(0,0,0,0.5)', flexShrink:0 }}/>
-                      : <span style={{ fontSize:16 }}>{item.icon || '🚫'}</span>
-                    }
-                    <div>
-                      <div style={{ fontSize:12, fontWeight:800, color:'#F8FAFC' }}>{item.name}</div>
-                      <div style={{ fontSize:10, color:'#64748B' }}>{item.cat}</div>
-                    </div>
-                  </div>
-                ))}
+        {/* Zone info panel */}
+        {hovZone && (() => {
+          const zone = ZONES[hovZone-1];
+          const items = getZoneItems(hovZone);
+          const zoneUnlocked = lv >= (hovZone-1)*10+1;
+          return (
+            <div style={{ padding:'14px 18px', background:'#0F1A2E', borderTop:`3px solid ${zone.color}` }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                <div style={{ fontSize:16, fontWeight:800, color:zone.color }}>{zone.name}</div>
+                <div style={{ fontSize:11, color:'#64748B' }}>{zone.range}</div>
+                {!zoneUnlocked && <div style={{ marginLeft:'auto', background:'#1E293B', border:'2px solid #F59E0B',
+                  borderRadius:6, padding:'2px 8px', fontSize:10, color:'#F59E0B', fontWeight:800 }}>🔒 尚未解鎖</div>}
+                {currentZone===hovZone && <div style={{ marginLeft:'auto', background:'#1E3A8A', border:'2px solid #3B82F6',
+                  borderRadius:6, padding:'2px 8px', fontSize:10, color:'#93C5FD', fontWeight:800 }}>📍 你在這裡</div>}
               </div>
-            ) : (
-              <div style={{ color:'#475569', fontSize:13 }}>此關卡無解鎖道具</div>
-            )}
+              <div style={{ fontSize:11, color:'#94A3B8', marginBottom:10 }}>{zone.desc}</div>
+              {items.length > 0 ? (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {items.map((item,i) => (
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px',
+                      background:'#1E293B', borderRadius:8, border:`2px solid ${item.level<=lv?'#334155':'#1E293B'}`,
+                      opacity: item.level<=lv ? 1 : 0.5 }}>
+                      {item.color ? <div style={{ width:16,height:16,borderRadius:3,background:item.color,border:'1.5px solid #0004',flexShrink:0 }}/>
+                        : <span style={{ fontSize:13 }}>{item.icon||'🎁'}</span>}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:800, color:'#F8FAFC' }}>{item.name}</div>
+                        <div style={{ fontSize:9, color:'#64748B' }}>Lv{item.level} · {item.cat}</div>
+                      </div>
+                      {item.level <= lv && <span style={{ fontSize:9, color:'#10B981', fontWeight:800 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color:'#475569', fontSize:12 }}>此區域無道具掉落</div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Mini legend */}
+        {!hovZone && (
+          <div style={{ padding:'10px 18px', display:'flex', gap:12, flexWrap:'wrap', background:'#0F1A2E', borderTop:'2px solid #1E293B' }}>
+            <div style={{ fontSize:10, color:'#475569', fontWeight:600 }}>點擊地圖區域查看道具 ·</div>
+            {ZONES.map(z=>(
+              <div key={z.id} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <div style={{ width:10, height:10, borderRadius:2, background:z.color }}/>
+                <span style={{ fontSize:10, color: lv>=(z.id-1)*10+1 ? '#94A3B8' : '#334155', fontWeight:600 }}>{z.range}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
