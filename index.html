@@ -173,44 +173,80 @@ function nextLevelXP(xp) {
 
 const BADGE_DEFS = [
   // ── 基礎成就 ──
-  { id:'first',       emoji:'🐣', name:'新手上路',    desc:'答對第一題',                         check: p => p.totalCorrect >= 1 },
-  { id:'streak3',     emoji:'🔥', name:'連勝高手',    desc:'單場連續答對 3 題',                  check: p => p.maxStreak >= 3 },
-  { id:'streak10',    emoji:'⚡', name:'火熱狀態',    desc:'單場連續答對 10 題',                 check: p => p.maxStreak >= 10 },
-  { id:'perfect',     emoji:'💯', name:'完美主義',    desc:'某場練習全部答對',                   check: p => p.perfectSessions >= 1 },
-  { id:'c50',         emoji:'📚', name:'知識達人',    desc:'累計答對 50 題',                     check: p => p.totalCorrect >= 50 },
-  { id:'c100',        emoji:'🎯', name:'百發百中',    desc:'累計答對 100 題',                    check: p => p.totalCorrect >= 100 },
-  { id:'expert',      emoji:'🏆', name:'專家勇士',    desc:'完成高級練習',                       check: p => (p.diffStats?.expert||0) >= 1 },
-  { id:'xp500',       emoji:'🌟', name:'學習之星',    desc:'累計 500 XP',                        check: p => p.xp >= 500 },
-  { id:'sessions5',   emoji:'📅', name:'持之以恆',    desc:'完成 5 場練習',                      check: p => p.totalSessions >= 5 },
-  { id:'all_diffs',   emoji:'🌈', name:'全面挑戰',    desc:'四種難度各完成一場',                 check: p => ['easy','medium','hard','expert'].every(k => (p.diffStats?.[k]||0) >= 1) },
-  { id:'listen10',    emoji:'👂', name:'耳朵尖銳',    desc:'聆聽題答對 10 次',                   check: p => (p.typeCorrect?.listen||0) >= 10 },
-  { id:'daily',       emoji:'🗓️', name:'日日精進',    desc:'完成全部每日任務',                   check: p => (p.allDailyDone||0) >= 1 },
+  { id:'first',       emoji:'🐣', name:'新手上路',    desc:'答對第一題',
+    reward:{ type:'weapon', emoji:'🥄', name:'湯匙',         rdesc:'傳說中最弱的武器，但你有它！' } },
+  { id:'streak3',     emoji:'🔥', name:'連勝高手',    desc:'單場連續答對 3 題',
+    reward:{ type:'weapon', emoji:'🗡️', name:'木劍',         rdesc:'冒險者的起點' } },
+  { id:'streak10',    emoji:'⚡', name:'火熱狀態',    desc:'單場連續答對 10 題',
+    reward:{ type:'weapon', emoji:'⚡', name:'閃電匕首',      rdesc:'電光石火，快如閃電' } },
+  { id:'perfect',     emoji:'💯', name:'完美主義',    desc:'某場練習全部答對',
+    reward:{ type:'weapon', emoji:'💎', name:'水晶法杖',      rdesc:'純淨如水晶，完美如你' } },
+  { id:'c50',         emoji:'📚', name:'知識達人',    desc:'累計答對 50 題',
+    reward:{ type:'weapon', emoji:'📖', name:'知識秘典',      rdesc:'古老智慧凝聚而成的聖書' } },
+  { id:'c100',        emoji:'🎯', name:'百發百中',    desc:'累計答對 100 題',
+    reward:{ type:'weapon', emoji:'🏹', name:'百眼神弓',      rdesc:'從不失手的神射手之弓' } },
+  { id:'expert',      emoji:'🏆', name:'專家勇士',    desc:'完成高級練習',
+    reward:{ type:'pet',    emoji:'🐉', name:'幼龍・火焰',    rdesc:'剛孵化的龍寶寶，超可愛' } },
+  { id:'xp500',       emoji:'🌟', name:'學習之星',    desc:'累計 500 XP',
+    reward:{ type:'pet',    emoji:'🌟', name:'星光精靈',      rdesc:'從星空墜落的小精靈' } },
+  { id:'sessions5',   emoji:'📅', name:'持之以恆',    desc:'完成 5 場練習',
+    reward:{ type:'pet',    emoji:'🐱', name:'喵喵貓',        rdesc:'喵～牠喜歡看書' } },
+  { id:'all_diffs',   emoji:'🌈', name:'全面挑戰',    desc:'四種難度各完成一場',
+    reward:{ type:'pet',    emoji:'🦊', name:'彩虹小狐',      rdesc:'會七種顏色魔法的狐狸' } },
+  { id:'listen10',    emoji:'👂', name:'耳朵尖銳',    desc:'聆聽題答對 10 次',
+    reward:{ type:'pet',    emoji:'🦋', name:'蝴蝶精靈',      rdesc:'振翅聲就是最美的英語' } },
+  { id:'daily',       emoji:'🗓️', name:'日日精進',    desc:'完成全部每日任務',
+    reward:{ type:'weapon', emoji:'🌿', name:'精進神棒',      rdesc:'每天成長的力量結晶' } },
 
   // ── 奇怪成就 ──
-  { id:'night_owl',   emoji:'🦉', name:'深夜學霸',    desc:'答對 1 題（午夜之後任一時刻打開過）', check: p => p.totalCorrect >= 1 && new Date().getHours() >= 22 },
-  { id:'speed_demon', emoji:'💨', name:'閃速魔鬼',    desc:'累計完成 20 場練習',                 check: p => p.totalSessions >= 20 },
-  { id:'wrong3x',     emoji:'🙈', name:'友善失誤',    desc:'累計答錯超過 30 題（沒關係，繼續！）',check: p => (p.totalSessions*10 - p.totalCorrect) >= 30 },
-  { id:'xp9999',      emoji:'💰', name:'暴富學者',    desc:'累計 9999 XP',                       check: p => p.xp >= 9999 },
-  { id:'c500',        emoji:'🧠', name:'題海神人',    desc:'累計答對 500 題',                    check: p => p.totalCorrect >= 500 },
-  { id:'perfect5',    emoji:'👑', name:'完美五連',    desc:'累計拿下 5 場滿分',                  check: p => p.perfectSessions >= 5 },
-  { id:'streak20',    emoji:'🌪️', name:'龍捲風連勝',  desc:'單場連續答對 20 題',                 check: p => p.maxStreak >= 20 },
-  { id:'sessions50',  emoji:'🚂', name:'學習機器',    desc:'完成 50 場練習',                     check: p => p.totalSessions >= 50 },
-  { id:'listen50',    emoji:'🎧', name:'人肉錄音機',  desc:'聆聽題累計答對 50 次',               check: p => (p.typeCorrect?.listen||0) >= 50 },
-  { id:'fill50',      emoji:'✍️', name:'填空狂魔',    desc:'填空題累計答對 50 次',               check: p => (p.typeCorrect?.fill||0) >= 50 },
-  { id:'daily5',      emoji:'🔰', name:'鐵人精進',    desc:'累計完成全部每日任務 5 次',           check: p => (p.allDailyDone||0) >= 5 },
-  { id:'lv20',        emoji:'🎖️', name:'二十等英雄',  desc:'達到 20 級',                         check: p => getLevel(p.xp) >= 20 },
-  { id:'lv50',        emoji:'💎', name:'傳說等級',    desc:'達到 50 級',                         check: p => getLevel(p.xp) >= 50 },
-  { id:'lv80',        emoji:'🌌', name:'宇宙無敵',    desc:'抵達最終的 80 級',                   check: p => getLevel(p.xp) >= 80 },
-  { id:'easy100',     emoji:'🍭', name:'新手村長',    desc:'新手模式完成 100 場',                check: p => (p.diffStats?.easy||0) >= 100 },
-  { id:'xp1',         emoji:'🔰', name:'踏出第一步',  desc:'獲得人生第一點 XP',                  check: p => p.xp >= 1 },
-  { id:'order30',     emoji:'🔀', name:'排列組合大師', desc:'排句題累計答對 30 次',               check: p => (p.typeCorrect?.order||0) >= 30 },
-  { id:'phonics30',   emoji:'🔤', name:'拼音怪獸',    desc:'拼音題累計答對 30 次',               check: p => (p.typeCorrect?.phonics||0) >= 30 },
-  { id:'comeback',    emoji:'🔄', name:'浴火重生',    desc:'完成 3 場練習後繼續（精神可嘉）',     check: p => p.totalSessions >= 3 && p.totalCorrect < p.totalSessions * 5 },
-  { id:'all_perfect3',emoji:'✨', name:'三連完美',    desc:'累計拿下 3 場滿分',                  check: p => p.perfectSessions >= 3 },
-  { id:'xp50000',     emoji:'🚀', name:'銀河學霸',    desc:'累計 50,000 XP',                     check: p => p.xp >= 50000 },
-  { id:'sessions100', emoji:'🤖', name:'學習機器人',  desc:'累計完成 100 場練習',                check: p => p.totalSessions >= 100 },
-  { id:'c1000',       emoji:'🏛️', name:'答題神殿',    desc:'累計答對 1000 題',                   check: p => p.totalCorrect >= 1000 },
-  { id:'expert10',    emoji:'💀', name:'高手中的高手', desc:'高級模式完成 10 場',                 check: p => (p.diffStats?.expert||0) >= 10 },
+  { id:'night_owl',   emoji:'🦉', name:'深夜學霸',    desc:'夜間 10 點後答對題目',
+    reward:{ type:'pet',    emoji:'🦉', name:'夜貓頭鷹',      rdesc:'深夜的守護者，眼神銳利' } },
+  { id:'speed_demon', emoji:'💨', name:'閃速魔鬼',    desc:'累計完成 20 場練習',
+    reward:{ type:'weapon', emoji:'💨', name:'疾風刃',        rdesc:'快到你看不見它' } },
+  { id:'wrong3x',     emoji:'🙈', name:'友善失誤',    desc:'累計答錯超過 30 題',
+    reward:{ type:'weapon', emoji:'🔨', name:'倒楣錘',        rdesc:'敲一敲，也許會變聰明？' } },
+  { id:'xp9999',      emoji:'💰', name:'暴富學者',    desc:'累計 9999 XP',
+    reward:{ type:'weapon', emoji:'🪙', name:'黃金大劍',      rdesc:'純金打造，貴到舉不起來' } },
+  { id:'c500',        emoji:'🧠', name:'題海神人',    desc:'累計答對 500 題',
+    reward:{ type:'weapon', emoji:'🧠', name:'智慧之刃',      rdesc:'越有智慧，它越鋒利' } },
+  { id:'perfect5',    emoji:'👑', name:'完美五連',    desc:'累計拿下 5 場滿分',
+    reward:{ type:'pet',    emoji:'🦄', name:'白色獨角獸',    rdesc:'只有完美主義者才能馴服' } },
+  { id:'streak20',    emoji:'🌪️', name:'龍捲風連勝',  desc:'單場連續答對 20 題',
+    reward:{ type:'weapon', emoji:'🌪️', name:'龍捲旋刃',      rdesc:'旋轉、跳躍、我閉著眼' } },
+  { id:'sessions50',  emoji:'🚂', name:'學習機器',    desc:'完成 50 場練習',
+    reward:{ type:'pet',    emoji:'🐢', name:'哲學烏龜',      rdesc:'慢慢來，但從不放棄' } },
+  { id:'listen50',    emoji:'🎧', name:'人肉錄音機',  desc:'聆聽題累計答對 50 次',
+    reward:{ type:'weapon', emoji:'📡', name:'音波炮',        rdesc:'BOOM！英語轟炸機來了' } },
+  { id:'fill50',      emoji:'✍️', name:'填空狂魔',    desc:'填空題累計答對 50 次',
+    reward:{ type:'weapon', emoji:'✒️', name:'填空魔筆',      rdesc:'一筆，填滿所有空格' } },
+  { id:'daily5',      emoji:'🔰', name:'鐵人精進',    desc:'累計完成全部每日任務 5 次',
+    reward:{ type:'pet',    emoji:'🌸', name:'花花精靈',      rdesc:'每天澆水才能成長的精靈' } },
+  { id:'lv20',        emoji:'🎖️', name:'二十等英雄',  desc:'達到 20 級',
+    reward:{ type:'weapon', emoji:'⚔️', name:'英雄之劍',      rdesc:'英雄的象徵，沉甸甸的榮耀' } },
+  { id:'lv50',        emoji:'💎', name:'傳說等級',    desc:'達到 50 級',
+    reward:{ type:'pet',    emoji:'🔥', name:'鳳凰雛鳥',      rdesc:'浴火重生，跟你一樣厲害' } },
+  { id:'lv80',        emoji:'🌌', name:'宇宙無敵',    desc:'抵達最終的 80 級',
+    reward:{ type:'weapon', emoji:'🌌', name:'宇宙終焉劍',    rdesc:'傳說中能劈開星系的巨劍' } },
+  { id:'easy100',     emoji:'🍭', name:'新手村長',    desc:'新手模式完成 100 場',
+    reward:{ type:'pet',    emoji:'🐥', name:'新手村小雞',    rdesc:'就算是小雞，也是你的雞' } },
+  { id:'xp1',         emoji:'🔰', name:'踏出第一步',  desc:'獲得人生第一點 XP',
+    reward:{ type:'weapon', emoji:'🪨', name:'一顆石頭',      rdesc:'史前武器，但也是武器' } },
+  { id:'order30',     emoji:'🔀', name:'排列組合大師', desc:'排句題累計答對 30 次',
+    reward:{ type:'weapon', emoji:'🔀', name:'混沌之劍',      rdesc:'刀身每天都換方向' } },
+  { id:'phonics30',   emoji:'🔤', name:'拼音怪獸',    desc:'拼音題累計答對 30 次',
+    reward:{ type:'weapon', emoji:'📢', name:'音波法杖',      rdesc:'每揮一下都會拼出字母' } },
+  { id:'comeback',    emoji:'🔄', name:'浴火重生',    desc:'答錯了還繼續挑戰',
+    reward:{ type:'weapon', emoji:'🛡️', name:'不死之盾',      rdesc:'就算倒下，也能爬起來' } },
+  { id:'all_perfect3',emoji:'✨', name:'三連完美',    desc:'累計拿下 3 場滿分',
+    reward:{ type:'weapon', emoji:'✨', name:'光輝長劍',      rdesc:'完美主義者的終極武器' } },
+  { id:'xp50000',     emoji:'🚀', name:'銀河學霸',    desc:'累計 50,000 XP',
+    reward:{ type:'weapon', emoji:'🚀', name:'銀河炮',        rdesc:'射程：整個銀河系' } },
+  { id:'sessions100', emoji:'🤖', name:'學習機器人',  desc:'累計完成 100 場練習',
+    reward:{ type:'pet',    emoji:'🤖', name:'學習機器人',    rdesc:'你的練習量讓它誕生了' } },
+  { id:'c1000',       emoji:'🏛️', name:'答題神殿',    desc:'累計答對 1000 題',
+    reward:{ type:'pet',    emoji:'🗿', name:'神殿守衛者',    rdesc:'沉默但忠心耿耿' } },
+  { id:'expert10',    emoji:'💀', name:'高手中的高手', desc:'高級模式完成 10 場',
+    reward:{ type:'weapon', emoji:'💀', name:'死神鐮刀',      rdesc:'高手才能揮動的終極武器' } },
 ];
 
 const TASK_POOL = [
@@ -463,6 +499,9 @@ function processSession({ prog, results, difficulty, questions }) {
     if (!prevBadges.has(b.id) && b.check(p)) {
       p.badges = [...(p.badges||[]), b.id];
       newBadges.push(b);
+      if (b.reward) {
+        p.rewards = [...(p.rewards||[]), { badgeId: b.id, ...b.reward }];
+      }
     }
   });
 
@@ -1043,34 +1082,115 @@ function TasksModal({ prog, onClose }) {
 }
 
 function BadgesModal({ prog, onClose }) {
+  const [tab, setTab] = React.useState('badges');
   const earned = new Set(prog.badges || []);
   const earnedCount = BADGE_DEFS.filter(b => earned.has(b.id)).length;
+  const rewards = prog.rewards || [];
+  const weapons = rewards.filter(r => r.type === 'weapon');
+  const pets    = rewards.filter(r => r.type === 'pet');
+
+  const TABS = [
+    { id:'badges',  label:`🏅 成就 ${earnedCount}/${BADGE_DEFS.length}` },
+    { id:'weapons', label:`⚔️ 武器 ${weapons.length}` },
+    { id:'pets',    label:`🐾 寵物 ${pets.length}` },
+  ];
+
   return (
     <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal-box slide-up">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-          <div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🏅 成就徽章</div>
-            <div style={{ fontSize:12, color:'#64748B', fontWeight:400 }}>已解鎖 {earnedCount} / {BADGE_DEFS.length} 個</div>
-          </div>
+      <div className="modal-box slide-up" style={{ padding:0, overflow:'hidden' }}>
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+          padding:'14px 18px', background:'#0F1A2E', borderBottom:'3px solid #1E293B' }}>
+          <div style={{ fontSize:20, fontWeight:800, color:'#F8FAFC' }}>🏅 成就＆戰利品</div>
           <button onClick={onClose} className="btn-press" style={{ background:'#0F1A2E', border:'3px solid #334155',
             borderRadius:8, width:36, height:36, fontSize:16, color:'#94A3B8', boxShadow:'0 3px 0 #000' }}>✕</button>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          {BADGE_DEFS.map(b => {
-            const has = earned.has(b.id);
-            return (
-              <div key={b.id} className={has ? 'badge-pop' : ''} style={{
-                background: has ? '#1c0f00' : '#0F1A2E', border: `3px solid ${has ? '#F59E0B' : '#334155'}`,
-                borderRadius:10, padding:'14px 12px', textAlign:'center',
-                opacity: has ? 1 : 0.45, boxShadow: has ? '0 0 12px rgba(245,158,11,0.25)' : 'none' }}>
-                <div style={{ fontSize:32, filter: has ? 'none' : 'grayscale(1) brightness(0.5)' }}>{b.emoji}</div>
-                <div style={{ fontSize:13, fontWeight:800, color: has ? '#F59E0B' : '#475569', marginTop:4 }}>{b.name}</div>
-                <div style={{ fontSize:11, color: has ? '#94A3B8' : '#334155', marginTop:2, fontWeight:400 }}>{b.desc}</div>
-                {!has && <div style={{ fontSize:10, color:'#334155', marginTop:4, fontWeight:800 }}>🔒 LOCKED</div>}
-              </div>
-            );
-          })}
+        {/* Tabs */}
+        <div style={{ display:'flex', borderBottom:'3px solid #1E293B', background:'#0a1628' }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              flex:1, padding:'10px 4px', border:'none', background:'transparent', cursor:'pointer',
+              fontSize:11, fontWeight:800, color: tab===t.id ? '#F8FAFC' : '#475569',
+              borderBottom: tab===t.id ? '3px solid #3B82F6' : '3px solid transparent',
+              transition:'all .15s' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {/* Content */}
+        <div style={{ padding:'14px 16px', maxHeight:'60vh', overflowY:'auto' }}>
+          {tab === 'badges' && (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {BADGE_DEFS.map(b => {
+                const has = earned.has(b.id);
+                return (
+                  <div key={b.id} className={has ? 'badge-pop' : ''} style={{
+                    background: has ? '#1c0f00' : '#0F1A2E',
+                    border: `3px solid ${has ? '#F59E0B' : '#334155'}`,
+                    borderRadius:10, padding:'12px 10px', textAlign:'center',
+                    opacity: has ? 1 : 0.4,
+                    boxShadow: has ? '0 0 12px rgba(245,158,11,0.25)' : 'none' }}>
+                    <div style={{ fontSize:28, filter: has ? 'none' : 'grayscale(1) brightness(0.4)' }}>{b.emoji}</div>
+                    <div style={{ fontSize:12, fontWeight:800, color: has ? '#F59E0B' : '#475569', marginTop:3 }}>{b.name}</div>
+                    <div style={{ fontSize:10, color: has ? '#94A3B8' : '#334155', marginTop:1, fontWeight:400 }}>{b.desc}</div>
+                    {has && b.reward && (
+                      <div style={{ marginTop:6, fontSize:10, color:'#64748B', background:'#0F1A2E',
+                        borderRadius:6, padding:'3px 6px', display:'inline-block' }}>
+                        {b.reward.type==='pet'?'🐾':'⚔️'} {b.reward.emoji} {b.reward.name}
+                      </div>
+                    )}
+                    {!has && <div style={{ fontSize:10, color:'#334155', marginTop:4, fontWeight:800 }}>🔒 LOCKED</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {tab === 'weapons' && (
+            weapons.length === 0
+              ? <div style={{ textAlign:'center', padding:40, color:'#475569', fontSize:14 }}>
+                  ⚔️ 還沒有武器<br/>
+                  <span style={{ fontSize:12 }}>解鎖成就後獲得</span>
+                </div>
+              : <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  {weapons.map((w,i) => (
+                    <div key={i} style={{ background:'#1E293B', border:'3px solid #475569',
+                      borderRadius:12, padding:'16px 12px', textAlign:'center',
+                      boxShadow:'0 4px 0 #000' }}>
+                      <div style={{ fontSize:44, marginBottom:6 }}>{w.emoji}</div>
+                      <div style={{ fontSize:14, fontWeight:800, color:'#F8FAFC' }}>{w.name}</div>
+                      <div style={{ fontSize:10, color:'#64748B', marginTop:4 }}>{w.rdesc}</div>
+                      <div style={{ fontSize:9, color:'#334155', marginTop:6 }}>
+                        來自成就：{BADGE_DEFS.find(b=>b.id===w.badgeId)?.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+          )}
+
+          {tab === 'pets' && (
+            pets.length === 0
+              ? <div style={{ textAlign:'center', padding:40, color:'#475569', fontSize:14 }}>
+                  🐾 還沒有寵物<br/>
+                  <span style={{ fontSize:12 }}>解鎖成就後獲得</span>
+                </div>
+              : <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  {pets.map((pet,i) => (
+                    <div key={i} style={{ background:'#1a1040', border:'3px solid #7C3AED',
+                      borderRadius:12, padding:'16px 12px', textAlign:'center',
+                      boxShadow:'0 4px 0 #4C1D95', position:'relative' }}>
+                      <div className="bobble" style={{ display:'inline-block' }}>
+                        <div style={{ fontSize:52 }}>{pet.emoji}</div>
+                      </div>
+                      <div style={{ fontSize:13, fontWeight:800, color:'#C4B5FD', marginTop:4 }}>{pet.name}</div>
+                      <div style={{ fontSize:10, color:'#7C3AED', marginTop:4 }}>{pet.rdesc}</div>
+                      <div style={{ fontSize:9, color:'#4C1D95', marginTop:6 }}>
+                        來自成就：{BADGE_DEFS.find(b=>b.id===pet.badgeId)?.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+          )}
         </div>
       </div>
     </div>
@@ -2338,14 +2458,32 @@ function ResultsScreen({ results, difficulty, questions, sessionResult, onHome, 
         {newBadges.length > 0 && (
           <div style={{ background:'#0F1A2E', borderRadius:10, border:'3px solid #F59E0B', padding:'12px 16px', marginBottom:14 }}>
             <div style={{ fontSize:13, fontWeight:800, color:'#F59E0B', marginBottom:8 }}>🏅 新解鎖成就！</div>
-            <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
-              {newBadges.map(b => (
-                <div key={b.id} className="badge-pop" style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:32 }}>{b.emoji}</div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#F8FAFC' }}>{b.name}</div>
+            {newBadges.map(b => (
+              <div key={b.id} className="badge-pop" style={{
+                display:'flex', alignItems:'center', gap:12, marginBottom:8,
+                background:'#1c0f00', borderRadius:8, padding:'10px 12px',
+                border:'2px solid #F59E0B44' }}>
+                <div style={{ fontSize:30, flexShrink:0 }}>{b.emoji}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:'#F59E0B' }}>{b.name}</div>
+                  <div style={{ fontSize:11, color:'#94A3B8' }}>{b.desc}</div>
                 </div>
-              ))}
-            </div>
+                {b.reward && (
+                  <div style={{ textAlign:'center', flexShrink:0,
+                    background: b.reward.type==='pet' ? '#1a1040' : '#0a1628',
+                    border:`2px solid ${b.reward.type==='pet'?'#7C3AED':'#475569'}`,
+                    borderRadius:8, padding:'6px 10px', minWidth:60 }}>
+                    <div style={{ fontSize:26 }}>{b.reward.emoji}</div>
+                    <div style={{ fontSize:9, fontWeight:800,
+                      color: b.reward.type==='pet' ? '#C4B5FD' : '#94A3B8',
+                      marginTop:2 }}>{b.reward.name}</div>
+                    <div style={{ fontSize:8, color:'#475569' }}>
+                      {b.reward.type==='pet'?'🐾 新寵物':'⚔️ 新武器'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -2381,19 +2519,33 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit, on
 
   return (
     <div style={{ maxWidth:560, margin:'0 auto', padding:'20px 16px' }}>
-      <div style={{ textAlign:'center', marginBottom:16 }}>
-        <div className="bobble" style={{ display:'inline-block', position:'relative', cursor:'pointer' }}
-          onClick={onAvatarEdit} title="點擊編輯角色">
-          <Pip size={80} pose="cheer" cosmetics={prog.cosmetics}/>
-          <div style={{ position:'absolute', bottom:-2, right:-4, background:'#3B82F6', border:'2px solid #000',
-            borderRadius:6, padding:'2px 6px', fontSize:9, fontWeight:800, color:'#fff', boxShadow:'0 2px 0 #1E3A8A' }}>✏️ 編輯</div>
-        </div>
+      {(() => {
+        const pets = (prog.rewards||[]).filter(r=>r.type==='pet');
+        const latestPet = pets[pets.length-1];
+        return (
+          <div style={{ textAlign:'center', marginBottom:16 }}>
+            <div style={{ display:'inline-flex', alignItems:'flex-end', gap:8, position:'relative' }}>
+              <div className="bobble" style={{ display:'inline-block', position:'relative', cursor:'pointer' }}
+                onClick={onAvatarEdit} title="點擊編輯角色">
+                <Pip size={80} pose="cheer" cosmetics={prog.cosmetics}/>
+                <div style={{ position:'absolute', bottom:-2, right:-4, background:'#3B82F6', border:'2px solid #000',
+                  borderRadius:6, padding:'2px 6px', fontSize:9, fontWeight:800, color:'#fff', boxShadow:'0 2px 0 #1E3A8A' }}>✏️ 編輯</div>
+              </div>
+              {latestPet && (
+                <div className="bobble" style={{ marginBottom:4 }} title={latestPet.name}>
+                  <div style={{ fontSize:36 }}>{latestPet.emoji}</div>
+                  <div style={{ fontSize:8, color:'#7C3AED', fontWeight:800, textAlign:'center' }}>{latestPet.name}</div>
+                </div>
+              )}
+            </div>
         <h1 style={{ fontSize:30, fontWeight:800, color:'#F8FAFC', margin:'10px 0 2px',
           textShadow:'0 0 20px rgba(239,68,68,0.5), 2px 2px 0 #000' }}>ENGLISH QUEST</h1>
         <p style={{ color:'#94A3B8', fontSize:12, fontWeight:400, letterSpacing:0.5 }}>
           SELECT YOUR WORLD — 每次題目都不一樣 🎲
         </p>
-      </div>
+          </div>
+        );
+      })()}
 
       <div className="rb-card" style={{ padding:'14px 16px', marginBottom:10 }}>
         <div style={{ fontSize:10, fontWeight:600, color:'#64748B', letterSpacing:1, marginBottom:8 }}>👤 PLAYER STATS</div>
