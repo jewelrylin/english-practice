@@ -98,21 +98,75 @@
 const SUPABASE_URL = 'https://qxhnslnsplkhcieebrcc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable__-Gh98OyO_R9i6xQpa-sHQ_42lHAIah';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_TIMEOUT_MS = 5000;
+const CLOUD_SYNC_KEY = 'pip_cloud_sync_v1';
+const cloudAccessState = { offlineMode:false, dirtyLocalData:loadDirtyLocalData() };
+
+function canUseCloud(action='雲端操作', { connectivityProbe=false }={}) {
+  if (!cloudAccessState.offlineMode) return true;
+  if (connectivityProbe) return true;
+  console.warn(`${action} 已略過：目前為離線模式`);
+  return false;
+}
+
+function loadDirtyLocalData() {
+  try { return JSON.parse(localStorage.getItem(CLOUD_SYNC_KEY) || '{}').dirtyLocalData === true; }
+  catch { return false; }
+}
+
+function saveDirtyLocalData(dirtyLocalData) {
+  try { localStorage.setItem(CLOUD_SYNC_KEY, JSON.stringify({ dirtyLocalData })); } catch {}
+}
+
+function stampProgress(prog, updatedAt=new Date().toISOString()) {
+  return { ...prog, updated_at:updatedAt };
+}
+
+function withTimeout(promise, label, timeoutMs=SUPABASE_TIMEOUT_MS) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} 逾時，已切換為離線模式`)), timeoutMs);
+  });
+  return Promise.race([Promise.resolve(promise), timeout])
+    .finally(() => clearTimeout(timeoutId));
+}
 
 async function loadProgFromDB(userId) {
-  const { data } = await sb.from('user_progress').select('progress').eq('user_id', userId).single();
-  return data?.progress || null;
+  if (!canUseCloud('讀取雲端進度')) return null;
+  const { data, error } = await withTimeout(
+    sb.from('user_progress').select('progress, updated_at').eq('user_id', userId).maybeSingle(),
+    '讀取學習進度'
+  );
+  if (!canUseCloud('完成雲端進度讀取') || cloudAccessState.dirtyLocalData) return null;
+  if (error) throw error;
+  return data ? { progress:data.progress, updated_at:data.updated_at } : null;
 }
 async function saveProgToDB(userId, prog) {
-  const { data: existing } = await sb.from('user_progress')
-    .select('user_id').eq('user_id', userId).maybeSingle();
-  await sb.from('user_progress').upsert(
-    { user_id: userId, progress: prog, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id' }
+  if (!canUseCloud('同步雲端進度')) return false;
+  const { data: existing, error: lookupError } = await withTimeout(
+    sb.from('user_progress').select('user_id').eq('user_id', userId).maybeSingle(),
+    '檢查雲端進度'
   );
+  if (!canUseCloud('檢查雲端進度後繼續同步') || cloudAccessState.dirtyLocalData) return false;
+  if (lookupError) throw lookupError;
+
+  const { error: saveError } = await withTimeout(
+    sb.from('user_progress').upsert(
+      { user_id: userId, progress: prog, updated_at: prog.updated_at || new Date().toISOString() },
+      { onConflict: 'user_id' }
+    ),
+    '同步學習進度'
+  );
+  if (!canUseCloud('完成雲端進度同步') || cloudAccessState.dirtyLocalData) return false;
+  if (saveError) throw saveError;
+
   if (!existing) {
-    await sb.rpc('increment_user_count');
+    if (!canUseCloud('更新使用者人數')) return true;
+    const { error: countError } = await withTimeout(sb.rpc('increment_user_count'), '更新使用者人數');
+    if (!canUseCloud('完成使用者人數更新') || cloudAccessState.dirtyLocalData) return false;
+    if (countError) console.warn('更新使用者人數失敗：', countError.message);
   }
+  return true;
 }
 
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
@@ -128,7 +182,9 @@ function speakEn(text, rate=0.85) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'en-US'; u.rate = rate; speechSynthesis.speak(u);
 }
-const todayStr = () => new Date().toISOString().slice(0,10);
+const todayStr = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit'
+}).format(new Date());
 
 const STORE_KEY = 'pip_english_v1';
 
@@ -170,6 +226,47 @@ function nextLevelXP(xp) {
   return lv >= 80 ? null : LEVELS[lv];
 }
 
+
+const BADGE_CHECKS = {
+  first:        p => p.totalCorrect >= 1,
+  streak3:      p => p.maxStreak >= 3,
+  streak10:     p => p.maxStreak >= 10,
+  perfect:      p => p.perfectSessions >= 1,
+  c50:          p => p.totalCorrect >= 50,
+  c100:         p => p.totalCorrect >= 100,
+  expert:       p => (p.diffStats?.expert || 0) >= 1,
+  xp500:        p => p.xp >= 500,
+  sessions5:    p => p.totalSessions >= 5,
+  all_diffs:    p => ['easy','medium','hard','expert'].every(k => (p.diffStats?.[k] || 0) >= 1),
+  listen10:     p => (p.typeCorrect?.listen || 0) >= 10,
+  daily:        p => (p.allDailyDone || 0) >= 1,
+  night_owl:    p => p.totalCorrect >= 1 && Number(new Intl.DateTimeFormat('en-US', {
+    timeZone:'Asia/Taipei', hour:'2-digit', hourCycle:'h23'
+  }).format(new Date())) >= 22,
+  speed_demon:  p => p.totalSessions >= 20,
+  wrong3x:      p => (p.totalSessions * 10 - p.totalCorrect) >= 30,
+  xp9999:       p => p.xp >= 9999,
+  c500:         p => p.totalCorrect >= 500,
+  perfect5:     p => p.perfectSessions >= 5,
+  streak20:     p => p.maxStreak >= 20,
+  sessions50:   p => p.totalSessions >= 50,
+  listen50:     p => (p.typeCorrect?.listen || 0) >= 50,
+  fill50:       p => (p.typeCorrect?.fill || 0) >= 50,
+  daily5:       p => (p.allDailyDone || 0) >= 5,
+  lv20:         p => getLevel(p.xp) >= 20,
+  lv50:         p => getLevel(p.xp) >= 50,
+  lv80:         p => getLevel(p.xp) >= 80,
+  easy100:      p => (p.diffStats?.easy || 0) >= 100,
+  xp1:          p => p.xp >= 1,
+  order30:      p => (p.typeCorrect?.order || 0) >= 30,
+  phonics30:    p => (p.typeCorrect?.phonics || 0) >= 30,
+  comeback:     p => p.totalSessions >= 3 && p.totalCorrect < p.totalSessions * 5,
+  all_perfect3: p => p.perfectSessions >= 3,
+  xp50000:      p => p.xp >= 50000,
+  sessions100:  p => p.totalSessions >= 100,
+  c1000:        p => p.totalCorrect >= 1000,
+  expert10:     p => (p.diffStats?.expert || 0) >= 10,
+};
 
 const BADGE_DEFS = [
   // ── 基礎成就 ──
@@ -247,7 +344,7 @@ const BADGE_DEFS = [
     reward:{ type:'pet',    emoji:'🗿', name:'神殿守衛者',    rdesc:'沉默但忠心耿耿' } },
   { id:'expert10',    emoji:'💀', name:'高手中的高手', desc:'高級模式完成 10 場',
     reward:{ type:'weapon', emoji:'💀', name:'死神鐮刀',      rdesc:'高手才能揮動的終極武器' } },
-];
+].map(b => ({ ...b, check: BADGE_CHECKS[b.id] }));
 
 const TASK_POOL = [
   { id:'q10',     emoji:'📝', name:'勤奮學習',   desc:'今天答 10 題',           key:'answered', target:10, reward:30 },
@@ -496,7 +593,7 @@ function processSession({ prog, results, difficulty, questions }) {
   const prevBadges = new Set(prog.badges || []);
   const newBadges  = [];
   BADGE_DEFS.forEach(b => {
-    if (!prevBadges.has(b.id) && b.check(p)) {
+    if (!prevBadges.has(b.id) && typeof b.check === 'function' && b.check(p)) {
       p.badges = [...(p.badges||[]), b.id];
       newBadges.push(b);
       if (b.reward) {
@@ -1320,19 +1417,32 @@ function AvatarEditor({ prog, onSave, onClose }) {
 }
 
 
-function LeaderboardModal({ prog, user, onClose }) {
+function LeaderboardModal({ prog, user, offlineMode, onProgChange, onCloudSync, onCloudFailure, onClose }) {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState('');
   const [editNick, setEditNick] = React.useState(false);
   const [nick, setNick] = React.useState(prog.nickname || '');
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
-    sb.from('user_progress')
-      .select('user_id, progress')
-      .order('progress->xp', { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
+    let cancelled = false;
+    (async () => {
+      if (offlineMode || !canUseCloud('載入排行榜')) {
+        setLoadError('離線模式不載入排行榜，本機練習不受影響。');
+        setLoading(false);
+        return;
+      }
+      try {
+        const { data, error } = await withTimeout(
+          sb.from('user_progress')
+            .select('user_id, progress')
+            .order('progress->xp', { ascending: false })
+            .limit(20),
+          '載入排行榜'
+        );
+        if (cancelled || offlineMode || !canUseCloud('套用排行榜資料') || cloudAccessState.dirtyLocalData) return;
+        if (error) throw error;
         if (data) {
           const ranked = data.map((row, i) => ({
             rank: i + 1,
@@ -1344,18 +1454,36 @@ function LeaderboardModal({ prog, user, onClose }) {
           }));
           setRows(ranked);
         }
-        setLoading(false);
-      });
-  }, []);
+      } catch (err) {
+        if (!cancelled) setLoadError(`排行榜目前無法連線，離線練習不受影響。${err?.message ? `（${err.message}）` : ''}`);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [offlineMode]);
 
   const saveNickname = async () => {
     setSaving(true);
-    const newProg = { ...prog, nickname: nick };
-    if (user) await saveProgToDB(user.id, newProg);
-    setSaving(false);
-    setEditNick(false);
-    // refresh
+    setLoadError('');
+    const newProg = stampProgress({ ...prog, nickname: nick });
+    onProgChange(newProg);
+    saveProg(newProg);
     setRows(r => r.map(row => row.user_id === user?.id ? { ...row, nickname: nick } : row));
+    try {
+      if (user && !offlineMode && canUseCloud('同步暱稱')) {
+        const synced = await saveProgToDB(user.id, newProg);
+        if (synced && !offlineMode && canUseCloud('完成暱稱同步') && !cloudAccessState.dirtyLocalData) {
+          onCloudSync(newProg.updated_at);
+        }
+      }
+    } catch (err) {
+      onCloudFailure();
+      setLoadError(`暱稱已儲存在本機，但尚未同步到雲端。${err?.message ? `（${err.message}）` : ''}`);
+    } finally {
+      setSaving(false);
+      setEditNick(false);
+    }
   };
 
   return (
@@ -1390,6 +1518,13 @@ function LeaderboardModal({ prog, user, onClose }) {
             borderRadius:8, color:'#94A3B8', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 3px 0 #000' }}>
             ✏️ 改暱稱 (現在：{prog.nickname || '冒險者'})
           </button>
+        )}
+
+        {loadError && (
+          <div style={{ marginBottom:12, fontSize:11, color:'#F59E0B', fontWeight:700,
+            background:'rgba(245,158,11,0.1)', border:'2px solid #F59E0B', borderRadius:8, padding:'8px' }}>
+            {loadError}
+          </div>
         )}
 
         {loading ? (
@@ -2152,21 +2287,21 @@ function BossAnimation({ playerLevel }) {
   const boss = BOSS_DATA.find(b => b.lv === playerLevel);
   if (!boss) return null;
   const [pos, setPos] = React.useState({ x: 80, y: 20 });
-  const [dir, setDir] = React.useState({ x: 1.2, y: 0.7 });
+  const dirRef = React.useRef({ x: 1.2, y: 0.7 });
   const [flip, setFlip] = React.useState(false);
   React.useEffect(() => {
     const id = setInterval(() => {
       setPos(p => {
-        let nx = p.x + dir.x, ny = p.y + dir.y;
-        let dx = dir.x, dy = dir.y;
+        let { x:dx, y:dy } = dirRef.current;
+        let nx = p.x + dx, ny = p.y + dy;
         if (nx > 88 || nx < 2) { dx = -dx; setFlip(f => !f); }
         if (ny > 75 || ny < 5) dy = -dy;
-        setDir({ x: dx, y: dy });
+        dirRef.current = { x:dx, y:dy };
         return { x: Math.max(2, Math.min(88, nx)), y: Math.max(5, Math.min(75, ny)) };
       });
     }, 35);
     return () => clearInterval(id);
-  }, [dir]);
+  }, []);
   return (
     <div style={{ position:'fixed', left:`${pos.x}%`, top:`${pos.y}%`, zIndex:50,
       pointerEvents:'none', transition:'left 0.035s linear, top 0.035s linear',
@@ -2635,7 +2770,7 @@ function HomeScreen({ prog, onStart, onShowTasks, onShowBadges, onAvatarEdit, on
 }
 
 
-function LoginScreen() {
+function LoginScreen({ onOffline }) {
   const [tab, setTab] = React.useState('login');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -2645,13 +2780,37 @@ function LoginScreen() {
   const [userCount, setUserCount] = React.useState(null);
 
   React.useEffect(() => {
-    sb.from('site_stats').select('value').eq('key', 'visitor_count').single()
-      .then(({ data }) => { if (data) setUserCount(data.value); });
+    (async () => {
+      if (!canUseCloud('載入訪客人數')) return;
+      try {
+        const { data, error } = await withTimeout(
+          sb.from('site_stats').select('value').eq('key', 'visitor_count').single(),
+          '載入訪客人數'
+        );
+        if (!canUseCloud('套用訪客人數') || cloudAccessState.dirtyLocalData) return;
+        if (error) throw error;
+        if (data) setUserCount(data.value);
+      } catch (err) {
+        console.warn('訪客人數載入失敗：', err?.message || err);
+      }
+    })();
   }, []);
 
   const loginGitHub = async () => {
     setLoading(true); setError('');
-    await sb.auth.signInWithOAuth({ provider:'github', options:{ redirectTo: window.location.href } });
+    try {
+      if (!canUseCloud('GitHub 登入')) throw new Error('目前為離線模式');
+      const { error: err } = await withTimeout(
+        sb.auth.signInWithOAuth({ provider:'github', options:{ redirectTo: window.location.href } }),
+        'GitHub 登入'
+      );
+      if (!canUseCloud('完成 GitHub 登入') || cloudAccessState.dirtyLocalData) return;
+      if (err) throw err;
+    } catch (err) {
+      setError(`GitHub 登入目前無法使用：${err?.message || '請稍後再試'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitEmail = async (e) => {
@@ -2659,13 +2818,28 @@ function LoginScreen() {
     if (!email || !password) { setError('請填寫 Email 和密碼'); return; }
     if (password.length < 6)  { setError('密碼至少 6 個字元'); return; }
     setLoading(true); setError(''); setDone('');
-    if (tab === 'login') {
-      const { error: err } = await sb.auth.signInWithPassword({ email, password });
-      if (err) { setError(err.message === 'Invalid login credentials' ? 'Email 或密碼錯誤' : err.message); setLoading(false); }
-    } else {
-      const { error: err } = await sb.auth.signUp({ email, password });
-      if (err) { setError(err.message); setLoading(false); }
-      else { setDone('註冊成功！正在登入…'); }
+    try {
+      if (!canUseCloud('Email 登入或註冊')) throw new Error('目前為離線模式');
+      if (tab === 'login') {
+        const { error: err } = await withTimeout(
+          sb.auth.signInWithPassword({ email, password }),
+          'Email 登入'
+        );
+        if (!canUseCloud('完成 Email 登入') || cloudAccessState.dirtyLocalData) return;
+        if (err) throw err;
+      } else {
+        const { error: err } = await withTimeout(
+          sb.auth.signUp({ email, password }),
+          'Email 註冊'
+        );
+        if (!canUseCloud('完成 Email 註冊') || cloudAccessState.dirtyLocalData) return;
+        if (err) throw err;
+        setDone('註冊成功！若信箱驗證已啟用，請先完成驗證再登入。');
+      }
+    } catch (err) {
+      setError(err?.message === 'Invalid login credentials' ? 'Email 或密碼錯誤' : (err?.message || '目前無法連線'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2733,6 +2907,13 @@ function LoginScreen() {
           </svg>
           GitHub 帳號登入
         </button>
+
+        <button onClick={onOffline} disabled={loading} style={{
+          width:'100%', marginTop:14, padding:'9px 0', background:'transparent',
+          color:'#94A3B8', border:'none', fontSize:12, fontWeight:700,
+          cursor:loading ? 'default' : 'pointer', fontFamily:'Fredoka, sans-serif' }}>
+          📴 暫時使用本機離線練習
+        </button>
       </div>
     </div>
   );
@@ -2753,34 +2934,178 @@ function App() {
   const [showLevelMap,      setShowLevelMap]      = React.useState(false);
   const [user,              setUser]              = React.useState(null);
   const [authLoading,       setAuthLoading]       = React.useState(true);
+  const [offlineMode,       setOfflineMode]       = React.useState(false);
+  const [dirtyLocalData,    setDirtyLocalData]    = React.useState(() => loadDirtyLocalData());
+  const progRef = React.useRef(prog);
+  const userRef = React.useRef(user);
+  const dirtyRef = React.useRef(dirtyLocalData);
+  const visitorCountedRef = React.useRef(false);
+
+  React.useEffect(() => { progRef.current = prog; }, [prog]);
+  React.useEffect(() => { userRef.current = user; }, [user]);
+  React.useEffect(() => { dirtyRef.current = dirtyLocalData; }, [dirtyLocalData]);
+
+  const updateOfflineMode = (value) => {
+    cloudAccessState.offlineMode = value;
+    setOfflineMode(value);
+  };
+
+  const updateDirtyLocalData = (value) => {
+    cloudAccessState.dirtyLocalData = value;
+    dirtyRef.current = value;
+    setDirtyLocalData(value);
+    saveDirtyLocalData(value);
+  };
+
+  const preserveSyncConflict = (reason) => {
+    console.warn(`同步衝突：${reason}。保留本機資料並維持離線模式，不自動覆蓋。`);
+    updateOfflineMode(true);
+  };
 
   React.useEffect(() => {
-    sb.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        loadProgFromDB(u.id).then(p => {
-          if (p) setProg(ensureCosmetics(ensureDaily(p)));
-        });
+    let active = true;
+
+    const loadCloudProgress = async (u) => {
+      if (dirtyRef.current) {
+        preserveSyncConflict('本機有尚未同步的變更');
+        return;
       }
-      setAuthLoading(false);
-    });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        loadProgFromDB(u.id).then(p => {
-          if (p) setProg(ensureCosmetics(ensureDaily(p)));
-        });
+      if (!canUseCloud('下載雲端進度')) return;
+      try {
+        const cloudRecord = await loadProgFromDB(u.id);
+        if (!active || !cloudRecord?.progress) return;
+        if (dirtyRef.current || !canUseCloud('套用雲端進度')) {
+          preserveSyncConflict('下載期間本機狀態已變更');
+          return;
+        }
+
+        const localProg = progRef.current;
+        const localUpdatedAt = localProg?.updated_at ? Date.parse(localProg.updated_at) : null;
+        const cloudUpdatedAt = cloudRecord.updated_at ? Date.parse(cloudRecord.updated_at) : null;
+        const hasLocalProgress = (localProg?.xp || 0) > 0 ||
+          (localProg?.totalSessions || 0) > 0 ||
+          (localProg?.badges || []).length > 0;
+
+        if (hasLocalProgress && !localUpdatedAt) {
+          preserveSyncConflict('本機已有進度但缺少可比較的 updated_at');
+          return;
+        }
+        if (localUpdatedAt && cloudUpdatedAt && localUpdatedAt !== cloudUpdatedAt) {
+          preserveSyncConflict(localUpdatedAt > cloudUpdatedAt
+            ? '本機資料比雲端新'
+            : '雲端資料比本機新');
+          return;
+        }
+
+        const safeCloudProg = stampProgress(cloudRecord.progress, cloudRecord.updated_at || new Date().toISOString());
+        setProg(ensureCosmetics(ensureDaily(safeCloudProg)));
+        saveProg(safeCloudProg);
+      } catch (err) {
+        console.warn('雲端進度載入失敗，繼續使用本機進度：', err?.message || err);
+        if (active) updateOfflineMode(true);
       }
-    });
-    return () => subscription.unsubscribe();
+    };
+
+    (async () => {
+      try {
+        if (!canUseCloud('取得登入狀態')) throw new Error('目前為離線模式');
+        const { data, error } = await withTimeout(sb.auth.getSession(), '取得登入狀態');
+        if (!active || !canUseCloud('套用登入狀態') || dirtyRef.current) {
+          if (dirtyRef.current) preserveSyncConflict('取得登入狀態期間本機資料已變更');
+          return;
+        }
+        if (error) throw error;
+        const u = data?.session?.user ?? null;
+        setUser(u);
+        if (u) {
+          await loadCloudProgress(u);
+          if (!active || !canUseCloud('完成登入後雲端載入') || dirtyRef.current) return;
+        } else {
+          if (!canUseCloud('檢查 Supabase 連線')) throw new Error('目前為離線模式');
+          const { error: healthError } = await withTimeout(
+            sb.from('site_stats').select('key').limit(1),
+            '檢查 Supabase 連線'
+          );
+          if (!active || !canUseCloud('完成 Supabase 連線檢查') || dirtyRef.current) {
+            if (dirtyRef.current) preserveSyncConflict('連線檢查期間本機資料已變更');
+            return;
+          }
+          if (healthError) throw healthError;
+        }
+      } catch (err) {
+        console.warn('Supabase 無法使用，已切換為本機離線練習：', err?.message || err);
+        if (active) {
+          setUser(null);
+          updateOfflineMode(true);
+        }
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+
+    const subscription = canUseCloud('監聽登入狀態')
+      ? sb.auth.onAuthStateChange(async (_event, session) => {
+          const u = session?.user ?? null;
+          setUser(u);
+          if (u && !dirtyRef.current && canUseCloud('登入後下載雲端進度')) {
+            await loadCloudProgress(u);
+            if (!active || !canUseCloud('完成登入事件雲端載入') || dirtyRef.current) return;
+          } else if (u && dirtyRef.current) {
+            preserveSyncConflict('登入狀態恢復，但本機有尚未同步的變更');
+          }
+        }).data.subscription
+      : null;
+
+    const handleOnline = async () => {
+      if (dirtyRef.current) {
+        preserveSyncConflict('網路恢復，但本機有尚未同步的變更');
+        return;
+      }
+      try {
+        if (!canUseCloud('確認 Supabase 是否恢復', { connectivityProbe:true })) return;
+        const response = await withTimeout(fetch(`${SUPABASE_URL}/auth/v1/health`, {
+          headers:{ apikey:SUPABASE_KEY }
+        }), '確認 Supabase 連線');
+        if (!active || dirtyRef.current || cloudAccessState.dirtyLocalData) {
+          if (dirtyRef.current || cloudAccessState.dirtyLocalData) preserveSyncConflict('連線確認期間本機資料已變更');
+          return;
+        }
+        if (!canUseCloud('完成 Supabase 恢復確認', { connectivityProbe:true })) return;
+        if (!response.ok) throw new Error(`Supabase health check ${response.status}`);
+        updateOfflineMode(false);
+        if (userRef.current) {
+          await loadCloudProgress(userRef.current);
+          if (!active || !canUseCloud('完成恢復連線後雲端載入') || dirtyRef.current) return;
+        }
+      } catch (err) {
+        console.warn('網路恢復但 Supabase 仍不可用：', err?.message || err);
+        if (active) updateOfflineMode(true);
+      }
+    };
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      active = false;
+      subscription?.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+    };
   }, []);
 
   // 每次有人開網頁就+1（不管有沒有登入）
   React.useEffect(() => {
-    (async () => { try { await sb.rpc('increment_visitor_count'); } catch(e) {} })();
-  }, []);
+    if (authLoading || offlineMode || visitorCountedRef.current || !canUseCloud('更新訪客人數')) return;
+    visitorCountedRef.current = true;
+    (async () => {
+      try {
+        const { error } = await withTimeout(sb.rpc('increment_visitor_count'), '更新訪客人數');
+        if (offlineMode || !canUseCloud('完成訪客人數更新') || dirtyRef.current) return;
+        if (error) throw error;
+      } catch (err) {
+        visitorCountedRef.current = false;
+        console.warn('訪客人數更新失敗：', err?.message || err);
+      }
+    })();
+  }, [authLoading, offlineMode]);
 
   const startQuiz = (diff, count) => {
     const bank   = QB[diff].questions;
@@ -2794,21 +3119,62 @@ function App() {
 
   const finishQuiz = (res) => {
     const sr = processSession({ prog, results:res, difficulty, questions });
-    setProg(sr.p);
+    const localProg = stampProgress(sr.p);
+    saveProg(localProg);
+    progRef.current = localProg;
+    setProg(localProg);
     setResults(res);
-    setSessionResult(sr);
+    setSessionResult({ ...sr, p:localProg });
     setScreen('results');
-    if (user) saveProgToDB(user.id, sr.p);
+    if (offlineMode || !canUseCloud('同步測驗進度')) {
+      updateDirtyLocalData(true);
+    } else if (user) {
+      saveProgToDB(user.id, localProg).then(synced => {
+        if (synced &&
+            canUseCloud('完成測驗進度同步') &&
+            !cloudAccessState.dirtyLocalData &&
+            progRef.current?.updated_at === localProg.updated_at) {
+          updateDirtyLocalData(false);
+        }
+      }).catch(err => {
+        console.warn('雲端進度同步失敗，進度已保留在本機：', err?.message || err);
+        updateDirtyLocalData(true);
+        updateOfflineMode(true);
+      });
+    }
   };
 
   const retry = () => startQuiz(difficulty, questions.length);
 
   const updateCosmetics = (cos) => {
-    const newProg = { ...prog, cosmetics: cos };
+    const newProg = stampProgress({ ...prog, cosmetics: cos });
+    progRef.current = newProg;
     setProg(newProg);
     saveProg(newProg);
-    if (user) saveProgToDB(user.id, newProg);
+    if (offlineMode || !canUseCloud('同步角色設定')) {
+      updateDirtyLocalData(true);
+    } else if (user) {
+      saveProgToDB(user.id, newProg).then(synced => {
+        if (synced &&
+            canUseCloud('完成角色設定同步') &&
+            !cloudAccessState.dirtyLocalData &&
+            progRef.current?.updated_at === newProg.updated_at) {
+          updateDirtyLocalData(false);
+        }
+      }).catch(err => {
+        console.warn('角色設定同步失敗，設定已保留在本機：', err?.message || err);
+        updateDirtyLocalData(true);
+        updateOfflineMode(true);
+      });
+    }
     setShowAvatarEditor(false);
+  };
+
+  const updateProgressFromLeaderboard = (newProg) => {
+    progRef.current = newProg;
+    setProg(newProg);
+    saveProg(newProg);
+    if (offlineMode) updateDirtyLocalData(true);
   };
 
   if (authLoading) return (
@@ -2818,7 +3184,7 @@ function App() {
     </div>
   );
 
-  if (!user) return <LoginScreen />;
+  if (!user && !offlineMode) return <LoginScreen onOffline={() => updateOfflineMode(true)} />;
 
   return (
     <div>
@@ -2830,15 +3196,17 @@ function App() {
             fontSize:12, fontWeight:800, color:'#93C5FD', cursor:'pointer',
             boxShadow:'0 3px 0 #1E3A8A' }}>🎭 角色</button>
         )}
-        <button onClick={() => sb.auth.signOut()} className="btn-press" style={{
+        <button onClick={() => {
+          if (user && canUseCloud('登出')) sb.auth.signOut();
+        }} className="btn-press" style={{
           display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
           background:'#1E293B', border:'3px solid #334155', borderRadius:8,
           fontSize:12, fontWeight:800, color:'#94A3B8', cursor:'pointer',
           boxShadow:'0 3px 0 #000' }}>
-          {user.user_metadata?.avatar_url && (
+          {user?.user_metadata?.avatar_url && (
             <img src={user.user_metadata.avatar_url} style={{ width:20, height:20, borderRadius:'50%', border:'2px solid #334155' }} />
           )}
-          登出
+          {user ? '登出' : '📴 離線模式 · 登入暫時不可用'}
         </button>
       </div>
 
@@ -2865,7 +3233,17 @@ function App() {
       {showTasks        && <TasksModal       prog={prog} onClose={() => setShowTasks(false)}/>}
       {showBadges       && <BadgesModal      prog={prog} onClose={() => setShowBadges(false)}/>}
       {showAvatarEditor && <AvatarEditor     prog={prog} onSave={updateCosmetics} onClose={() => setShowAvatarEditor(false)}/>}
-      {showLeaderboard  && <LeaderboardModal prog={prog} user={user} onClose={() => setShowLeaderboard(false)}/>}
+      {showLeaderboard  && <LeaderboardModal prog={prog} user={user} offlineMode={offlineMode}
+          onProgChange={updateProgressFromLeaderboard}
+          onCloudSync={(syncedUpdatedAt) => {
+            if (canUseCloud('確認暱稱同步狀態') &&
+                !cloudAccessState.dirtyLocalData &&
+                progRef.current?.updated_at === syncedUpdatedAt) {
+              updateDirtyLocalData(false);
+            }
+          }}
+          onCloudFailure={() => { updateDirtyLocalData(true); updateOfflineMode(true); }}
+          onClose={() => setShowLeaderboard(false)}/>}
       {showLevelMap     && <LevelMapModal    prog={prog} onClose={() => setShowLevelMap(false)}/>}
     </div>
   );
